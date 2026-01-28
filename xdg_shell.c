@@ -1,7 +1,8 @@
 /*
- * Cage: A Wayland kiosk.
+ * WayMux: A Wayland multiplexer.
  *
- * Copyright (C) 2018-2019 Jente Hidskes
+ * Copyright (C) 2025 Ido Perlmuter
+ * Based on Cage: Copyright (C) 2018-2019 Jente Hidskes
  *
  * See the LICENSE file accompanying this file.
  */
@@ -147,7 +148,7 @@ is_primary(struct cg_view *view)
 static bool
 is_transient_for(struct cg_view *child, struct cg_view *parent)
 {
-	if (parent->type != CAGE_XDG_SHELL_VIEW) {
+	if (parent->type != WAYMUX_XDG_SHELL_VIEW) {
 		return false;
 	}
 	struct cg_xdg_shell_view *_child = xdg_shell_view_from_view(child);
@@ -293,7 +294,7 @@ handle_new_xdg_toplevel(struct wl_listener *listener, void *data)
 		return;
 	}
 
-	view_init(&xdg_shell_view->view, server, CAGE_XDG_SHELL_VIEW, &xdg_shell_view_impl);
+	view_init(&xdg_shell_view->view, server, WAYMUX_XDG_SHELL_VIEW, &xdg_shell_view_impl);
 	xdg_shell_view->xdg_toplevel = toplevel;
 
 	xdg_shell_view->commit.notify = handle_xdg_toplevel_commit;

@@ -1,8 +1,9 @@
 /*
- * Cage: A Wayland kiosk.
+ * WayMux: A Wayland multiplexer.
  *
- * Copyright (C) 2018-2021 Jente Hidskes
- * Copyright (C) 2019 The Sway authors
+ * Copyright (C) 2025 Ido Perlmuter
+ * Based on Cage: Copyright (C) 2018-2021 Jente Hidskes
+ * Based on Sway: Copyright (C) 2019 The Sway authors
  *
  * See the LICENSE file accompanying this file.
  */
@@ -38,7 +39,7 @@
 #include "seat.h"
 #include "server.h"
 #include "view.h"
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 #include "xwayland.h"
 #endif
 
@@ -217,7 +218,7 @@ output_destroy(struct cg_output *output)
 
 	if (wl_list_empty(&server->outputs) && was_nested_output) {
 		server_terminate(server);
-	} else if (server->output_mode == CAGE_MULTI_OUTPUT_MODE_LAST && !wl_list_empty(&server->outputs)) {
+	} else if (server->output_mode == WAYMUX_MULTI_OUTPUT_MODE_LAST && !wl_list_empty(&server->outputs)) {
 		struct cg_output *prev = wl_container_of(server->outputs.next, prev, link);
 		output_enable(prev);
 		view_position_all(server);
@@ -301,7 +302,7 @@ handle_new_output(struct wl_listener *listener, void *data)
 		}
 	}
 
-	if (server->output_mode == CAGE_MULTI_OUTPUT_MODE_LAST && wl_list_length(&server->outputs) > 1) {
+	if (server->output_mode == WAYMUX_MULTI_OUTPUT_MODE_LAST && wl_list_length(&server->outputs) > 1) {
 		struct cg_output *next = wl_container_of(output->link.next, next, link);
 		output_disable(next);
 	}

@@ -8,16 +8,16 @@
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/box.h>
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 #include <wlr/xwayland.h>
 #endif
 
 #include "server.h"
 
 enum cg_view_type {
-	CAGE_XDG_SHELL_VIEW,
-#if CAGE_HAS_XWAYLAND
-	CAGE_XWAYLAND_VIEW,
+	WAYMUX_XDG_SHELL_VIEW,
+#if WAYMUX_HAS_XWAYLAND
+	WAYMUX_XWAYLAND_VIEW,
 #endif
 };
 

@@ -1,16 +1,16 @@
-cage(1)
+waymux(1)
 
 # NAME
 
-cage - a Wayland kiosk compositor
+waymux - a Wayland multiplexer compositor
 
 # SYNOPSIS
 
-*cage* [options...] [--] [_application_...]
+*waymux* [options...] [--] [_application_...]
 
 # DESCRIPTION
 
-Cage runs a single, maximized application. Cage can run multiple applications,
+WayMux runs a single, maximized application. WayMux can run multiple applications,
 but only a single one is visible at any point in time. User interaction and
 activities outside the scope of the running application are prevented.
 
@@ -27,8 +27,8 @@ activities outside the scope of the running application are prevented.
 
 *-m* <mode>
 	Set the multi-monitor behavior. Supported modes are:
-	*last* Cage uses only the last connected monitor.
-	*extend* Cage extends the display across all connected monitors.
+	*last* WayMux uses only the last connected monitor.
+	*extend* WayMux extends the display across all connected monitors.
 
 *-s*
 	Allow VT switching
@@ -43,7 +43,7 @@ _DISPLAY_
 	X display used for Xwayland. Otherwise, probe the X11 backend.
 
 _WAYLAND_DISPLAY_
-	Specifies the name of the Wayland display that Cage is running on.
+	Specifies the name of the Wayland display that WayMux is running on.
 
 _XCURSOR_PATH_
 	Directory where cursors are located.
@@ -64,8 +64,9 @@ _XKB_DEFAULT_VARIANT_, _XKB_DEFAULT_OPTIONS_
 
 # BUGS
 
-Report bugs at https://github.com/cage-kiosk/cage
+Report bugs at https://github.com/ido50/waymux
 
 # AUTHORS
 
+Ido Perlmuter <ido@ido50.net>
 Jente Hidskes <dev@hjdskes.nl>

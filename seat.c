@@ -1,7 +1,8 @@
 /*
- * Cage: A Wayland kiosk.
+ * WayMux: A Wayland multiplexer.
  *
- * Copyright (C) 2018-2020 Jente Hidskes
+ * Copyright (C) 2025 Ido Perlmuter
+ * Based on Cage: Copyright (C) 2018-2020 Jente Hidskes
  *
  * See the LICENSE file accompanying this file.
  */
@@ -31,7 +32,7 @@
 #include <wlr/types/wlr_virtual_pointer_v1.h>
 #include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/util/log.h>
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 #include <wlr/xwayland.h>
 #endif
 
@@ -39,7 +40,7 @@
 #include "seat.h"
 #include "server.h"
 #include "view.h"
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 #include "xwayland.h"
 #endif
 
@@ -934,8 +935,8 @@ seat_set_focus(struct cg_seat *seat, struct cg_view *view)
 		return;
 	}
 
-#if CAGE_HAS_XWAYLAND
-	if (view->type == CAGE_XWAYLAND_VIEW) {
+#if WAYMUX_HAS_XWAYLAND
+	if (view->type == WAYMUX_XWAYLAND_VIEW) {
 		struct cg_xwayland_view *xwayland_view = xwayland_view_from_view(view);
 		if (!wlr_xwayland_surface_override_redirect_wants_focus(xwayland_view->xwayland_surface)) {
 			return;

@@ -1,7 +1,8 @@
 /*
- * Cage: A Wayland kiosk.
+ * WayMux: A Wayland multiplexer.
  *
- * Copyright (C) 2018-2020 Jente Hidskes
+ * Copyright (C) 2025 Ido Perlmuter
+ * Based on Cage: Copyright (C) 2018-2020 Jente Hidskes
  *
  * See the LICENSE file accompanying this file.
  */
@@ -64,7 +65,7 @@ is_primary(struct cg_view *view)
 static bool
 is_transient_for(struct cg_view *child, struct cg_view *parent)
 {
-	if (parent->type != CAGE_XDG_SHELL_VIEW) {
+	if (parent->type != WAYMUX_XDG_SHELL_VIEW) {
 		return false;
 	}
 	struct cg_xwayland_view *_child = xwayland_view_from_view(child);
@@ -212,7 +213,7 @@ handle_xwayland_surface_new(struct wl_listener *listener, void *data)
 		return;
 	}
 
-	view_init(&xwayland_view->view, server, CAGE_XWAYLAND_VIEW, &xwayland_view_impl);
+	view_init(&xwayland_view->view, server, WAYMUX_XWAYLAND_VIEW, &xwayland_view_impl);
 	xwayland_view->xwayland_surface = xwayland_surface;
 
 	xwayland_view->associate.notify = handle_xwayland_associate;

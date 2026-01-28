@@ -13,13 +13,13 @@
 #include <wlr/types/wlr_xdg_decoration_v1.h>
 #include <wlr/util/log.h>
 
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 #include <wlr/xwayland.h>
 #endif
 
 enum cg_multi_output_mode {
-	CAGE_MULTI_OUTPUT_MODE_EXTEND,
-	CAGE_MULTI_OUTPUT_MODE_LAST,
+	WAYMUX_MULTI_OUTPUT_MODE_EXTEND,
+	WAYMUX_MULTI_OUTPUT_MODE_LAST,
 };
 
 struct cg_server {
@@ -54,7 +54,7 @@ struct cg_server {
 
 	struct wl_listener new_virtual_keyboard;
 	struct wl_listener new_virtual_pointer;
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 	struct wl_listener new_xwayland_surface;
 #endif
 	struct wlr_output_manager_v1 *output_manager_v1;

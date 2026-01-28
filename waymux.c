@@ -1,7 +1,8 @@
 /*
- * Cage: A Wayland kiosk.
+ * Waymux: A Wayland multiplexer.
  *
- * Copyright (C) 2018-2020 Jente Hidskes
+ * Copyright (C) 2025 Ido Perlmuter
+ * Based on Cage: Copyright (C) 2018-2020 Jente Hidskes
  *
  * See the LICENSE file accompanying this file.
  */
@@ -42,14 +43,14 @@
 #include <wlr/types/wlr_viewporter.h>
 #include <wlr/types/wlr_virtual_keyboard_v1.h>
 #include <wlr/types/wlr_virtual_pointer_v1.h>
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 #include <wlr/types/wlr_xcursor_manager.h>
 #endif
 #include <wlr/types/wlr_xdg_decoration_v1.h>
 #include <wlr/types/wlr_xdg_output_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 #include <wlr/xwayland.h>
 #endif
 
@@ -59,7 +60,7 @@
 #include "server.h"
 #include "view.h"
 #include "xdg_shell.h"
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 #include "xwayland.h"
 #endif
 
@@ -99,7 +100,7 @@ sigchld_handler(int fd, uint32_t mask, void *data)
 {
 	struct cg_server *server = data;
 
-	/* Close Cage's read pipe. */
+	/* Close WayMux's read pipe. */
 	close(fd);
 
 	if (mask & WL_EVENT_HANGUP) {
@@ -164,7 +165,7 @@ spawn_primary_client(struct cg_server *server, char *argv[], pid_t *pid_out, str
 		return false;
 	}
 
-	/* Close write, we only need read in Cage. */
+	/* Close write, we only need read in WayMux. */
 	close(fd[1]);
 
 	struct wl_event_loop *event_loop = wl_display_get_event_loop(server->wl_display);
@@ -236,7 +237,7 @@ handle_signal(int signal, void *data)
 }
 
 static void
-usage(FILE *file, const char *cage)
+usage(FILE *file, const char *waymux)
 {
 	fprintf(file,
 		"Usage: %s [OPTIONS] [--] [APPLICATION...]\n"
@@ -250,7 +251,7 @@ usage(FILE *file, const char *cage)
 		" -v\t Show the version number and exit\n"
 		"\n"
 		" Use -- when you want to pass arguments to APPLICATION\n",
-		cage);
+		waymux);
 }
 
 static bool
@@ -270,16 +271,16 @@ parse_args(struct cg_server *server, int argc, char *argv[])
 			return false;
 		case 'm':
 			if (strcmp(optarg, "last") == 0) {
-				server->output_mode = CAGE_MULTI_OUTPUT_MODE_LAST;
+				server->output_mode = WAYMUX_MULTI_OUTPUT_MODE_LAST;
 			} else if (strcmp(optarg, "extend") == 0) {
-				server->output_mode = CAGE_MULTI_OUTPUT_MODE_EXTEND;
+				server->output_mode = WAYMUX_MULTI_OUTPUT_MODE_EXTEND;
 			}
 			break;
 		case 's':
 			server->allow_vt_switch = true;
 			break;
 		case 'v':
-			fprintf(stdout, "Cage version " CAGE_VERSION "\n");
+			fprintf(stdout, "WayMux version " WAYMUX_VERSION "\n");
 			exit(0);
 		default:
 			usage(stderr, argv[0]);
@@ -559,7 +560,7 @@ main(int argc, char *argv[])
 		goto end;
 	}
 
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 	struct wlr_xcursor_manager *xcursor_manager = NULL;
 	struct wlr_xwayland *xwayland = wlr_xwayland_create(server.wl_display, compositor, true);
 	if (!xwayland) {
@@ -610,10 +611,10 @@ main(int argc, char *argv[])
 	if (setenv("WAYLAND_DISPLAY", socket, true) < 0) {
 		wlr_log_errno(WLR_ERROR, "Unable to set WAYLAND_DISPLAY. Clients may not be able to connect");
 	} else {
-		wlr_log(WLR_DEBUG, "Cage " CAGE_VERSION " is running on Wayland display %s", socket);
+		wlr_log(WLR_DEBUG, "WayMux " WAYMUX_VERSION " is running on Wayland display %s", socket);
 	}
 
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 	if (xwayland) {
 		wlr_xwayland_set_seat(xwayland, server.seat->seat);
 	}
@@ -627,7 +628,7 @@ main(int argc, char *argv[])
 	seat_center_cursor(server.seat);
 	wl_display_run(server.wl_display);
 
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 	if (xwayland) {
 		wl_list_remove(&server.new_xwayland_surface.link);
 	}

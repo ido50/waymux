@@ -1,4 +1,4 @@
-project('cage', 'c',
+project('waymux', 'c',
   version: '0.2.1',
   license: 'MIT',
   meson_version: '>=0.58.1',
@@ -81,8 +81,8 @@ if git.found()
 endif
 
 conf_data = configuration_data()
-conf_data.set10('CAGE_HAS_XWAYLAND', have_xwayland)
-conf_data.set_quoted('CAGE_VERSION', version)
+conf_data.set10('WAYMUX_HAS_XWAYLAND', have_xwayland)
+conf_data.set_quoted('WAYMUX_VERSION', version)
 
 scdoc = dependency('scdoc', version: '>=1.9.2', native: true, required: get_option('man-pages'))
 if scdoc.found()
@@ -90,7 +90,7 @@ if scdoc.found()
   sh = find_program('sh', native: true)
   mandir = get_option('mandir')
   man_files = [
-    'cage.1.scd'
+    'waymux.1.scd'
   ]
   foreach filename : man_files
     topic = filename.split('.')[-3].split('/')[-1]
@@ -110,8 +110,8 @@ if scdoc.found()
   endforeach
 endif
 
-cage_sources = [
-  'cage.c',
+waymux = [
+  'waymux.c',
   'idle_inhibit_v1.c',
   'output.c',
   'seat.c',
@@ -119,7 +119,7 @@ cage_sources = [
   'xdg_shell.c',
 ]
 
-cage_headers = [
+waymux_headers = [
   configure_file(input: 'config.h.in',
                  output: 'config.h',
                  configuration: conf_data),
@@ -131,14 +131,14 @@ cage_headers = [
   'xdg_shell.h',
 ]
 
-if conf_data.get('CAGE_HAS_XWAYLAND', 0) == 1
-  cage_sources += 'xwayland.c'
-  cage_headers += 'xwayland.h'
+if conf_data.get('WAYMUX_HAS_XWAYLAND', 0) == 1
+  waymux_sources += 'xwayland.c'
+  waymux_headers += 'xwayland.h'
 endif
 
 executable(
   meson.project_name(),
-  cage_sources + cage_headers,
+  waymux_sources + waymux_headers,
   dependencies: [
     server_protos,
     wayland_server,
@@ -151,7 +151,7 @@ executable(
 
 summary = [
   '',
-  'Cage @0@'.format(version),
+  'WayMux @0@'.format(version),
   '',
   '    xwayland: @0@'.format(have_xwayland),
   ''

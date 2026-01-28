@@ -1,7 +1,8 @@
 /*
- * Cage: A Wayland kiosk.
+ * WayMux: A Wayland multiplexer.
  *
- * Copyright (C) 2018-2021 Jente Hidskes
+ * Copyright (C) 2025 Ido Perlmuter
+ * Based on Cage: Copyright (C) 2018-2021 Jente Hidskes
  *
  * See the LICENSE file accompanying this file.
  */
@@ -21,7 +22,7 @@
 #include "seat.h"
 #include "server.h"
 #include "view.h"
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 #include "xwayland.h"
 #endif
 
@@ -155,10 +156,10 @@ view_map(struct cg_view *view, struct wlr_surface *surface)
 	view->wlr_surface = surface;
 	surface->data = view;
 
-#if CAGE_HAS_XWAYLAND
+#if WAYMUX_HAS_XWAYLAND
 	/* We shouldn't position override-redirect windows. They set
 	   their own (x,y) coordinates in handle_wayland_surface_map. */
-	if (view->type != CAGE_XWAYLAND_VIEW || xwayland_view_should_manage(view))
+	if (view->type != WAYMUX_XWAYLAND_VIEW || xwayland_view_should_manage(view))
 #endif
 	{
 		view_position(view);
