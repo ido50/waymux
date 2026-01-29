@@ -358,6 +358,8 @@ main(int argc, char *argv[])
 
 	wl_list_init(&server.views);
 	wl_list_init(&server.outputs);
+	wl_list_init(&server.tabs);
+	server.active_tab = NULL;
 
 	server.output_layout = wlr_output_layout_create(server.wl_display);
 	if (!server.output_layout) {

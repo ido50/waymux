@@ -115,6 +115,7 @@ waymux = [
   'idle_inhibit_v1.c',
   'output.c',
   'seat.c',
+  'tab.c',
   'view.c',
   'xdg_shell.c',
 ]
@@ -127,18 +128,19 @@ waymux_headers = [
   'output.h',
   'seat.h',
   'server.h',
+  'tab.h',
   'view.h',
   'xdg_shell.h',
 ]
 
 if conf_data.get('WAYMUX_HAS_XWAYLAND', 0) == 1
-  waymux_sources += 'xwayland.c'
+  waymux += 'xwayland.c'
   waymux_headers += 'xwayland.h'
 endif
 
 executable(
   meson.project_name(),
-  waymux_sources + waymux_headers,
+  waymux + waymux_headers,
   dependencies: [
     server_protos,
     wayland_server,
