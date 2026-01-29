@@ -41,6 +41,7 @@ wayland_protos = dependency('wayland-protocols', version: '>=1.14')
 wayland_server = dependency('wayland-server')
 xkbcommon      = dependency('xkbcommon')
 math           = cc.find_library('m')
+check          = dependency('check', version: '>=0.15', required: get_option('tests'))
 
 wl_protocol_dir = wayland_protos.get_variable('pkgdatadir')
 wayland_scanner = find_program('wayland-scanner')
@@ -164,3 +165,45 @@ summary = [
   ''
 ]
 message('\n'.join(summary))
+
+# Tests
+if check.found()
+  test_deps = [
+    check,
+    server_protos,
+    wayland_server,
+    wlroots,
+    xkbcommon,
+    math,
+  ]
+
+  # Desktop entry tests
+  test_desktop_entry = executable(
+    'desktop_entry_test',
+    'test/desktop_entry_test.c',
+    'desktop_entry.c',
+    dependencies: test_deps,
+    include_directories: include_directories('.'),
+  )
+
+  # Tab tests - create testable library with only the functions we need
+  # We compile tab.c without the functions that require full view integration
+  tab_test_lib = static_library(
+    'tab_test_lib',
+    'test/tab_test_stubs.c',  # Will create stubs for functions we don't test
+    dependencies: test_deps,
+    include_directories: include_directories('.'),
+  )
+
+  test_tab = executable(
+    'tab_test',
+    'test/tab_test.c',
+    dependencies: test_deps,
+    include_directories: include_directories('.'),
+    link_with: tab_test_lib,
+  )
+
+  # Run tests
+  test('desktop_entry', test_desktop_entry)
+  test('tab', test_tab)
+endif
