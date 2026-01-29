@@ -20,6 +20,7 @@
 
 /* Forward declarations */
 struct cg_launcher;
+struct cg_desktop_entry_manager;
 
 enum cg_multi_output_mode {
 	WAYMUX_MULTI_OUTPUT_MODE_EXTEND,
@@ -53,6 +54,7 @@ struct cg_server {
 
 	/* Application launcher */
 	struct cg_launcher *launcher;
+	struct cg_desktop_entry_manager *desktop_entries;
 
 	/* Includes disabled outputs; depending on the output_mode
 	 * some outputs may be disabled. */

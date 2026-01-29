@@ -7,8 +7,6 @@
  * See the LICENSE file accompanying this file.
  */
 
-#define _POSIX_C_SOURCE 200112L
-
 #include "config.h"
 
 #include <fcntl.h>
@@ -54,6 +52,7 @@
 #include <wlr/xwayland.h>
 #endif
 
+#include "desktop_entry.h"
 #include "idle_inhibit_v1.h"
 #include "launcher.h"
 #include "output.h"
@@ -389,6 +388,23 @@ main(int argc, char *argv[])
 		goto end;
 	}
 
+	/* Create desktop entry manager and load applications */
+	server.desktop_entries = desktop_entry_manager_create();
+	if (!server.desktop_entries) {
+		wlr_log(WLR_ERROR, "Unable to create desktop entry manager");
+		ret = 1;
+		goto end;
+	}
+
+	int entry_count = desktop_entry_manager_load(server.desktop_entries);
+	if (entry_count < 0) {
+		wlr_log(WLR_ERROR, "Failed to load desktop entries");
+		ret = 1;
+		goto end;
+	}
+
+	wlr_log(WLR_INFO, "Loaded %d desktop entries for launcher", entry_count);
+
 	struct wlr_compositor *compositor = wlr_compositor_create(server.wl_display, 6, server.renderer);
 	if (!compositor) {
 		wlr_log(WLR_ERROR, "Unable to create the wlroots compositor");
@@ -677,6 +693,8 @@ end:
 		wl_event_source_remove(sigchld_source);
 	}
 	seat_destroy(server.seat);
+	desktop_entry_manager_destroy(server.desktop_entries);
+	launcher_destroy(server.launcher);
 	/* This function is not null-safe, but we only ever get here
 	   with a proper wl_display. */
 	wl_display_destroy(server.wl_display);

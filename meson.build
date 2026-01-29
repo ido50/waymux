@@ -11,6 +11,7 @@ project('waymux', 'c',
 
 add_project_arguments(
   [
+    '-D_POSIX_C_SOURCE=200809L',
     '-DWLR_USE_UNSTABLE',
     '-Wundef',
     '-Wno-unused-parameter',
@@ -112,6 +113,7 @@ endif
 
 waymux = [
   'waymux.c',
+  'desktop_entry.c',
   'idle_inhibit_v1.c',
   'launcher.c',
   'output.c',
@@ -125,6 +127,7 @@ waymux_headers = [
   configure_file(input: 'config.h.in',
                  output: 'config.h',
                  configuration: conf_data),
+  'desktop_entry.h',
   'idle_inhibit_v1.h',
   'launcher.h',
   'output.h',
