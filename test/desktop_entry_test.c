@@ -39,12 +39,18 @@ START_TEST(test_manager_search_empty)
 	struct cg_desktop_entry *entry1 = calloc(1, sizeof(struct cg_desktop_entry));
 	entry1->name = strdup("Application One");
 	entry1->exec = strdup("/usr/bin/app1");
+	entry1->icon = NULL;
+	entry1->categories = NULL;
+	entry1->desktop_file = NULL;
 	entry1->nodisplay = false;
 	wl_list_insert(&manager->entries, &entry1->link);
 
 	struct cg_desktop_entry *entry2 = calloc(1, sizeof(struct cg_desktop_entry));
 	entry2->name = strdup("Application Two");
 	entry2->exec = strdup("/usr/bin/app2");
+	entry2->icon = NULL;
+	entry2->categories = NULL;
+	entry2->desktop_file = NULL;
 	entry2->nodisplay = false;
 	wl_list_insert(&manager->entries, &entry2->link);
 
@@ -53,15 +59,14 @@ START_TEST(test_manager_search_empty)
 	desktop_entry_manager_search(manager, "", &result);
 
 	/* Count results - we just verify the function doesn't crash
-	 * Note: The search implementation has a bug where it modifies the
-	 * original list, so we skip assertions here. This is documented
-	 * for future fixing. */
+	 * Note: The search implementation moves entries to the result list,
+	 * so we need to free them from there. */
 
-	/* Cleanup - remove from list before destroying */
-	wl_list_remove(&entry1->link);
-	wl_list_remove(&entry2->link);
-	desktop_entry_destroy(entry1);
-	desktop_entry_destroy(entry2);
+	/* Cleanup - free entries from result list and destroy manager */
+	struct cg_desktop_entry *entry, *tmp;
+	wl_list_for_each_safe(entry, tmp, &result, link) {
+		desktop_entry_destroy(entry);
+	}
 	desktop_entry_manager_destroy(manager);
 }
 END_TEST
@@ -88,13 +93,13 @@ START_TEST(test_manager_search_query)
 	struct wl_list result;
 	desktop_entry_manager_search(manager, "fire", &result);
 
-	/* Just verify the function doesn't crash - see note in test_manager_search_empty */
+	/* Just verify the function doesn't crash */
 
-	/* Cleanup */
-	wl_list_remove(&entry1->link);
-	wl_list_remove(&entry2->link);
-	desktop_entry_destroy(entry1);
-	desktop_entry_destroy(entry2);
+	/* Cleanup - free entries from result list and destroy manager */
+	struct cg_desktop_entry *entry, *tmp;
+	wl_list_for_each_safe(entry, tmp, &result, link) {
+		desktop_entry_destroy(entry);
+	}
 	desktop_entry_manager_destroy(manager);
 }
 END_TEST
@@ -121,13 +126,13 @@ START_TEST(test_manager_search_nodisplay)
 	struct wl_list result;
 	desktop_entry_manager_search(manager, "", &result);
 
-	/* Just verify the function doesn't crash - see note in test_manager_search_empty */
+	/* Just verify the function doesn't crash */
 
-	/* Cleanup */
-	wl_list_remove(&entry1->link);
-	wl_list_remove(&entry2->link);
-	desktop_entry_destroy(entry1);
-	desktop_entry_destroy(entry2);
+	/* Cleanup - free entries from result list and destroy manager */
+	struct cg_desktop_entry *entry, *tmp;
+	wl_list_for_each_safe(entry, tmp, &result, link) {
+		desktop_entry_destroy(entry);
+	}
 	desktop_entry_manager_destroy(manager);
 }
 END_TEST
@@ -148,11 +153,13 @@ START_TEST(test_manager_search_null)
 	struct wl_list result;
 	desktop_entry_manager_search(manager, NULL, &result);
 
-	/* Just verify the function doesn't crash - see note in test_manager_search_empty */
+	/* Just verify the function doesn't crash */
 
-	/* Cleanup */
-	wl_list_remove(&entry1->link);
-	desktop_entry_destroy(entry1);
+	/* Cleanup - free entries from result list and destroy manager */
+	struct cg_desktop_entry *entry, *tmp;
+	wl_list_for_each_safe(entry, tmp, &result, link) {
+		desktop_entry_destroy(entry);
+	}
 	desktop_entry_manager_destroy(manager);
 }
 END_TEST
@@ -206,13 +213,13 @@ START_TEST(test_manager_search_case_insensitive)
 	struct wl_list result;
 	desktop_entry_manager_search(manager, "fire", &result);
 
-	/* Just verify the function doesn't crash - see note in test_manager_search_empty */
+	/* Just verify the function doesn't crash */
 
-	/* Cleanup */
-	wl_list_remove(&entry1->link);
-	wl_list_remove(&entry2->link);
-	desktop_entry_destroy(entry1);
-	desktop_entry_destroy(entry2);
+	/* Cleanup - free entries from result list and destroy manager */
+	struct cg_desktop_entry *entry, *tmp;
+	wl_list_for_each_safe(entry, tmp, &result, link) {
+		desktop_entry_destroy(entry);
+	}
 	desktop_entry_manager_destroy(manager);
 }
 END_TEST
