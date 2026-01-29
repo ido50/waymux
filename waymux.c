@@ -55,6 +55,7 @@
 #endif
 
 #include "idle_inhibit_v1.h"
+#include "launcher.h"
 #include "output.h"
 #include "seat.h"
 #include "server.h"
@@ -360,6 +361,7 @@ main(int argc, char *argv[])
 	wl_list_init(&server.outputs);
 	wl_list_init(&server.tabs);
 	server.active_tab = NULL;
+	server.launcher = NULL;
 
 	server.output_layout = wlr_output_layout_create(server.wl_display);
 	if (!server.output_layout) {
@@ -378,6 +380,14 @@ main(int argc, char *argv[])
 	}
 
 	server.scene_output_layout = wlr_scene_attach_output_layout(server.scene, server.output_layout);
+
+	/* Create application launcher */
+	server.launcher = launcher_create(&server);
+	if (!server.launcher) {
+		wlr_log(WLR_ERROR, "Unable to create the launcher");
+		ret = 1;
+		goto end;
+	}
 
 	struct wlr_compositor *compositor = wlr_compositor_create(server.wl_display, 6, server.renderer);
 	if (!compositor) {

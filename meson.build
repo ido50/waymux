@@ -113,6 +113,7 @@ endif
 waymux = [
   'waymux.c',
   'idle_inhibit_v1.c',
+  'launcher.c',
   'output.c',
   'seat.c',
   'tab.c',
@@ -125,6 +126,7 @@ waymux_headers = [
                  output: 'config.h',
                  configuration: conf_data),
   'idle_inhibit_v1.h',
+  'launcher.h',
   'output.h',
   'seat.h',
   'server.h',

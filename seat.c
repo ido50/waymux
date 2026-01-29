@@ -36,6 +36,7 @@
 #include <wlr/xwayland.h>
 #endif
 
+#include "launcher.h"
 #include "output.h"
 #include "seat.h"
 #include "server.h"
@@ -328,6 +329,12 @@ handle_tab_keybinding(struct cg_server *server, xkb_keysym_t sym)
 
 			return true;
 		}
+	}
+
+	/* Super+n: toggle application launcher */
+	if (sym == XKB_KEY_n) {
+		launcher_toggle(server->launcher);
+		return true;
 	}
 
 	return false;

@@ -3,6 +3,7 @@
 
 #include "config.h"
 
+#include <stdbool.h>
 #include <wayland-server-core.h>
 #include <wlr/config.h>
 #include <wlr/types/wlr_drm_lease_v1.h>
@@ -16,6 +17,9 @@
 #if WAYMUX_HAS_XWAYLAND
 #include <wlr/xwayland.h>
 #endif
+
+/* Forward declarations */
+struct cg_launcher;
 
 enum cg_multi_output_mode {
 	WAYMUX_MULTI_OUTPUT_MODE_EXTEND,
@@ -46,6 +50,10 @@ struct cg_server {
 	/* Tab management */
 	struct wl_list tabs; // cg_tab::link
 	struct cg_tab *active_tab;
+
+	/* Application launcher */
+	struct cg_launcher *launcher;
+
 	/* Includes disabled outputs; depending on the output_mode
 	 * some outputs may be disabled. */
 	struct wl_list outputs; // cg_output::link
