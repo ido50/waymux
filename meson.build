@@ -114,6 +114,7 @@ endif
 
 waymux = [
   'waymux.c',
+  'control.c',
   'desktop_entry.c',
   'idle_inhibit_v1.c',
   'launcher.c',
@@ -128,6 +129,7 @@ waymux_headers = [
   configure_file(input: 'config.h.in',
                  output: 'config.h',
                  configuration: conf_data),
+  'control.h',
   'desktop_entry.h',
   'idle_inhibit_v1.h',
   'launcher.h',
@@ -203,7 +205,18 @@ if check.found()
     link_with: tab_test_lib,
   )
 
+  # Control server tests
+  test_control = executable(
+    'control_test',
+    'test/control_test.c',
+    'control.c',
+    'test/control_test_stubs.c',
+    dependencies: test_deps,
+    include_directories: include_directories('.'),
+  )
+
   # Run tests
   test('desktop_entry', test_desktop_entry)
   test('tab', test_tab)
+  test('control', test_control)
 endif

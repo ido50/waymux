@@ -56,6 +56,9 @@ struct cg_server {
 	struct cg_launcher *launcher;
 	struct cg_desktop_entry_manager *desktop_entries;
 
+	/* Control server */
+	struct cg_control_server *control;
+
 	/* Includes disabled outputs; depending on the output_mode
 	 * some outputs may be disabled. */
 	struct wl_list outputs; // cg_output::link
