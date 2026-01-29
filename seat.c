@@ -355,8 +355,18 @@ handle_key_event(struct wlr_keyboard *keyboard, struct cg_seat *seat, void *data
 	uint32_t modifiers = wlr_keyboard_get_modifiers(keyboard);
 
 	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+		/* If launcher is visible, forward keys to it first */
+		if (seat->server->launcher && seat->server->launcher->is_visible) {
+			for (int i = 0; i < nsyms; i++) {
+				if (launcher_handle_key(seat->server->launcher, syms[i], event->keycode)) {
+					handled = true;
+					break;
+				}
+			}
+		}
+
 		/* Check for WayMux tab keybindings (Super + key) */
-		if ((modifiers & WLR_MODIFIER_LOGO)) {
+		if (!handled && (modifiers & WLR_MODIFIER_LOGO)) {
 			for (int i = 0; i < nsyms; i++) {
 				if (handle_tab_keybinding(seat->server, syms[i])) {
 					handled = true;
