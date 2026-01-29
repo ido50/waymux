@@ -21,6 +21,7 @@
 /* Forward declarations */
 struct cg_launcher;
 struct cg_desktop_entry_manager;
+struct cg_tab_bar;
 
 enum cg_multi_output_mode {
 	WAYMUX_MULTI_OUTPUT_MODE_EXTEND,
@@ -55,6 +56,9 @@ struct cg_server {
 	/* Application launcher */
 	struct cg_launcher *launcher;
 	struct cg_desktop_entry_manager *desktop_entries;
+
+	/* Tab bar UI */
+	struct cg_tab_bar *tab_bar;
 
 	/* Control server */
 	struct cg_control_server *control;

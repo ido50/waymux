@@ -59,6 +59,7 @@
 #include "output.h"
 #include "seat.h"
 #include "server.h"
+#include "tab_bar.h"
 #include "view.h"
 #include "xdg_shell.h"
 #if WAYMUX_HAS_XWAYLAND
@@ -386,6 +387,14 @@ main(int argc, char *argv[])
 	server.launcher = launcher_create(&server);
 	if (!server.launcher) {
 		wlr_log(WLR_ERROR, "Unable to create the launcher");
+		ret = 1;
+		goto end;
+	}
+
+	/* Create tab bar UI */
+	server.tab_bar = tab_bar_create(&server);
+	if (!server.tab_bar) {
+		wlr_log(WLR_ERROR, "Unable to create tab bar");
 		ret = 1;
 		goto end;
 	}

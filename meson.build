@@ -121,6 +121,7 @@ waymux = [
   'output.c',
   'seat.c',
   'tab.c',
+  'tab_bar.c',
   'view.c',
   'xdg_shell.c',
 ]
@@ -137,6 +138,7 @@ waymux_headers = [
   'seat.h',
   'server.h',
   'tab.h',
+  'tab_bar.h',
   'view.h',
   'xdg_shell.h',
 ]
