@@ -159,6 +159,13 @@ executable(
   install: true,
 )
 
+# waymuxctl - control client
+waymuxctl = executable(
+  'waymuxctl',
+  'waymuxctl.c',
+  install: true,
+)
+
 summary = [
   '',
   'WayMux @0@'.format(version),
@@ -215,8 +222,17 @@ if check.found()
     include_directories: include_directories('.'),
   )
 
+  # waymuxctl client tests
+  test_waymuxctl = executable(
+    'waymuxctl_test',
+    'test/waymuxctl_test.c',
+    dependencies: test_deps,
+    include_directories: include_directories('.'),
+  )
+
   # Run tests
   test('desktop_entry', test_desktop_entry)
   test('tab', test_tab)
   test('control', test_control)
+  test('waymuxctl', test_waymuxctl)
 endif
