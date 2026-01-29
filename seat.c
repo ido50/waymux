@@ -39,6 +39,7 @@
 #include "output.h"
 #include "seat.h"
 #include "server.h"
+#include "tab.h"
 #include "view.h"
 #if WAYMUX_HAS_XWAYLAND
 #include "xwayland.h"
@@ -270,11 +271,66 @@ handle_keybinding(struct cg_server *server, xkb_keysym_t sym)
 				wlr_session_change_vt(server->session, vt);
 			}
 		}
-	} else {
-		return false;
+		return true;
 	}
-	wlr_idle_notifier_v1_notify_activity(server->idle, server->seat->seat);
-	return true;
+	return false;
+}
+
+/* Handle WayMux-specific tab keybindings with Super (logo) modifier */
+static bool
+handle_tab_keybinding(struct cg_server *server, xkb_keysym_t sym)
+{
+	/* Super+j: previous tab */
+	if (sym == XKB_KEY_j) {
+		if (server->active_tab) {
+			struct cg_tab *prev_tab = tab_prev(server->active_tab);
+			if (prev_tab) {
+				tab_activate(prev_tab);
+				return true;
+			}
+		}
+	}
+
+	/* Super+k: next tab */
+	if (sym == XKB_KEY_k) {
+		if (server->active_tab) {
+			struct cg_tab *next_tab = tab_next(server->active_tab);
+			if (next_tab) {
+				tab_activate(next_tab);
+				return true;
+			}
+		}
+	}
+
+	/* Super+d: close current tab and switch to next */
+	if (sym == XKB_KEY_d) {
+		if (server->active_tab) {
+			struct cg_tab *current = server->active_tab;
+			struct cg_tab *next_tab = tab_next(current);
+
+			/* Destroy current tab */
+			tab_destroy(current);
+
+			/* Activate next tab if exists */
+			if (next_tab && next_tab != current) {
+				tab_activate(next_tab);
+			} else if (tab_count(server) > 0) {
+				/* If next_tab was the same as current (only one tab),
+				 * get the first available tab */
+				struct cg_tab *first_tab =
+					wl_container_of(server->tabs.next, first_tab, link);
+				if (first_tab) {
+					tab_activate(first_tab);
+				}
+			}
+			/* If no tabs remain, the application launcher should be shown
+			 * (to be implemented in Phase 3) */
+
+			return true;
+		}
+	}
+
+	return false;
 }
 
 static void
@@ -290,12 +346,23 @@ handle_key_event(struct wlr_keyboard *keyboard, struct cg_seat *seat, void *data
 
 	bool handled = false;
 	uint32_t modifiers = wlr_keyboard_get_modifiers(keyboard);
-	if ((modifiers & WLR_MODIFIER_ALT) && event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-		/* If Alt is held down and this button was pressed, we
-		 * attempt to process it as a compositor
-		 * keybinding. */
-		for (int i = 0; i < nsyms; i++) {
-			handled = handle_keybinding(seat->server, syms[i]);
+
+	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+		/* Check for WayMux tab keybindings (Super + key) */
+		if ((modifiers & WLR_MODIFIER_LOGO)) {
+			for (int i = 0; i < nsyms; i++) {
+				if (handle_tab_keybinding(seat->server, syms[i])) {
+					handled = true;
+					break;
+				}
+			}
+		}
+
+		/* Check for Alt keybindings (VT switching, etc.) */
+		if (!handled && (modifiers & WLR_MODIFIER_ALT)) {
+			for (int i = 0; i < nsyms; i++) {
+				handled = handle_keybinding(seat->server, syms[i]);
+			}
 		}
 	}
 
