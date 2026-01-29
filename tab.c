@@ -16,6 +16,7 @@
 
 #include "server.h"
 #include "tab.h"
+#include "tab_bar.h"
 #include "view.h"
 
 struct cg_tab *
@@ -46,6 +47,11 @@ tab_create(struct cg_server *server, struct cg_view *view)
 	/* Add to server's tab list */
 	wl_list_insert(&server->tabs, &tab->link);
 
+	/* Update tab bar to show new tab */
+	if (server->tab_bar) {
+		tab_bar_update(server->tab_bar);
+	}
+
 	wlr_log(WLR_DEBUG, "Created tab for view %p", (void *)view);
 	return tab;
 }
@@ -58,6 +64,11 @@ tab_destroy(struct cg_tab *tab)
 	}
 
 	struct cg_server *server = tab->server;
+
+	/* Update tab bar before removing tab */
+	if (server->tab_bar) {
+		tab_bar_update(server->tab_bar);
+	}
 
 	/* If this is the active tab, clear it */
 	if (server->active_tab == tab) {
@@ -113,6 +124,11 @@ tab_activate(struct cg_tab *tab)
 	if (tab->view) {
 		view_activate(tab->view, true);
 		view_position(tab->view);
+	}
+
+	/* Update tab bar to reflect new active tab */
+	if (server->tab_bar) {
+		tab_bar_update(server->tab_bar);
 	}
 
 	wlr_log(WLR_DEBUG, "Activated tab %p", (void *)tab);

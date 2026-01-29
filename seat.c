@@ -41,6 +41,7 @@
 #include "seat.h"
 #include "server.h"
 #include "tab.h"
+#include "tab_bar.h"
 #include "view.h"
 #if WAYMUX_HAS_XWAYLAND
 #include "xwayland.h"
@@ -97,6 +98,24 @@ press_cursor_button(struct cg_seat *seat, struct wlr_input_device *device, uint3
 	struct cg_server *server = seat->server;
 
 	if (state == WLR_BUTTON_PRESSED) {
+		/* Check if click is on tab bar first */
+		if (server->tab_bar) {
+			struct wlr_box layout_box;
+			wlr_output_layout_get_box(server->output_layout, NULL, &layout_box);
+			int tab_bar_y = layout_box.height - server->tab_bar->height;
+
+			/* Convert to tab bar local coordinates */
+			double tab_bar_x = lx;
+			double tab_bar_y_local = ly - tab_bar_y;
+
+			/* Check if click is within tab bar bounds */
+			if (tab_bar_y_local >= 0 && tab_bar_y_local < server->tab_bar->height) {
+				if (tab_bar_handle_click(server->tab_bar, tab_bar_x, tab_bar_y_local, button)) {
+					return;
+				}
+			}
+		}
+
 		double sx, sy;
 		struct wlr_surface *surface;
 		struct cg_view *view = desktop_view_at(server, lx, ly, &surface, &sx, &sy);
