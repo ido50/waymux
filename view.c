@@ -224,6 +224,15 @@ view_map(struct cg_view *view, struct wlr_surface *surface)
 
 	wlr_log(WLR_DEBUG, "view_map: Tab %p created for view %p", (void *)tab, (void *)view);
 
+	/* Check if this tab should be a background tab (from profile) */
+	bool should_be_background = false;
+	if (view->server->pending_background_tabs > 0) {
+		should_be_background = true;
+		view->server->pending_background_tabs--;
+		wlr_log(WLR_DEBUG, "Marking tab as background (pending: %d)",
+			view->server->pending_background_tabs);
+	}
+
 	/* Create view's scene tree as a child of tab's scene tree */
 	view->scene_tree = wlr_scene_subsurface_tree_create(tab->scene_tree, surface);
 	if (!view->scene_tree)
@@ -253,6 +262,11 @@ view_map(struct cg_view *view, struct wlr_surface *surface)
 	wl_signal_add(&view->foreign_toplevel_handle->events.request_activate, &view->request_activate);
 	view->request_close.notify = handle_surface_request_close;
 	wl_signal_add(&view->foreign_toplevel_handle->events.request_close, &view->request_close);
+
+	/* Set tab as background if needed (before activation) */
+	if (should_be_background) {
+		tab_set_background(tab, true);
+	}
 
 	wlr_log(WLR_DEBUG, "view_map: Activating tab %p for view %p", (void *)tab, (void *)view);
 

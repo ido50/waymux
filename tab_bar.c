@@ -537,8 +537,8 @@ tab_bar_update(struct cg_tab_bar *tab_bar)
 			break;
 		}
 
-		/* Skip tabs without views (being destroyed) */
-		if (!tab->view) {
+		/* Skip tabs without views (being destroyed) or background tabs */
+		if (!tab->view || tab->is_background) {
 			continue;
 		}
 

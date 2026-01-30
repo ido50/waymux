@@ -31,6 +31,9 @@ void tab_destroy(struct cg_tab *tab);
 /* Set tab as active and visible */
 void tab_activate(struct cg_tab *tab);
 
+/* Set tab as background (hidden from tab bar) or foreground (visible in tab bar) */
+void tab_set_background(struct cg_tab *tab, bool background);
+
 /* Switch to the next tab (with wraparound) */
 struct cg_tab *tab_next(struct cg_tab *current);
 

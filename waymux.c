@@ -407,6 +407,18 @@ spawn_profile_tabs(struct cg_server *server, const char *profile_name)
 
 	wlr_log(WLR_INFO, "Loaded profile '%s' with %d tabs", profile->name, profile->tab_count);
 
+	/* Count background tabs for matching when views appear */
+	server->pending_background_tabs = 0;
+	for (int i = 0; i < profile->tab_count; i++) {
+		if (profile->tabs[i].background) {
+			server->pending_background_tabs++;
+		}
+	}
+
+	if (server->pending_background_tabs > 0) {
+		wlr_log(WLR_DEBUG, "Profile has %d background tabs", server->pending_background_tabs);
+	}
+
 	if (profile->working_dir) {
 		wlr_log(WLR_DEBUG, "Profile working directory: %s", profile->working_dir);
 	}
@@ -530,6 +542,7 @@ main(int argc, char *argv[])
 	wl_list_init(&server.outputs);
 	wl_list_init(&server.tabs);
 	server.active_tab = NULL;
+	server.pending_background_tabs = 0;
 	server.launcher = NULL;
 	server.control = NULL;
 

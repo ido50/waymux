@@ -53,6 +53,7 @@ struct cg_server {
 	/* Tab management */
 	struct wl_list tabs; // cg_tab::link
 	struct cg_tab *active_tab;
+	int pending_background_tabs; /* Number of profile tabs that should start as background */
 
 	/* Application launcher */
 	struct cg_launcher *launcher;

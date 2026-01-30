@@ -42,6 +42,14 @@ tab_activate(struct cg_tab *tab)
 	/* Stub - not tested */
 }
 
+void
+tab_set_background(struct cg_tab *tab, bool background)
+{
+	(void)tab;
+	(void)background;
+	/* Stub - not tested */
+}
+
 struct cg_tab *
 tab_create(struct cg_server *server, struct cg_view *view)
 {
@@ -66,6 +74,7 @@ tab_next(struct cg_tab *current)
 
 	struct cg_server *server = current->server;
 	struct cg_tab *next = NULL;
+	struct cg_tab *start = current;
 
 	/* Get next tab in list, with wraparound */
 	if (current->link.next != &server->tabs) {
@@ -73,6 +82,21 @@ tab_next(struct cg_tab *current)
 	} else {
 		/* Wrap to first tab */
 		next = wl_container_of(server->tabs.next, next, link);
+	}
+
+	/* Skip background tabs */
+	while (next && next->is_background && next != start) {
+		if (next->link.next != &server->tabs) {
+			next = wl_container_of(next->link.next, next, link);
+		} else {
+			/* Wrap to first tab */
+			next = wl_container_of(server->tabs.next, next, link);
+		}
+	}
+
+	/* If we couldn't find a non-background tab (wrapped around to background only), return current */
+	if (next && next->is_background) {
+		return current;
 	}
 
 	return next;
@@ -87,6 +111,7 @@ tab_prev(struct cg_tab *current)
 
 	struct cg_server *server = current->server;
 	struct cg_tab *prev = NULL;
+	struct cg_tab *start = current;
 
 	/* Get previous tab in list, with wraparound */
 	if (current->link.prev != &server->tabs) {
@@ -94,6 +119,21 @@ tab_prev(struct cg_tab *current)
 	} else {
 		/* Wrap to last tab */
 		prev = wl_container_of(server->tabs.prev, prev, link);
+	}
+
+	/* Skip background tabs */
+	while (prev && prev->is_background && prev != start) {
+		if (prev->link.prev != &server->tabs) {
+			prev = wl_container_of(prev->link.prev, prev, link);
+		} else {
+			/* Wrap to last tab */
+			prev = wl_container_of(server->tabs.prev, prev, link);
+		}
+	}
+
+	/* If we couldn't find a non-background tab (wrapped around to background only), return current */
+	if (prev && prev->is_background) {
+		return current;
 	}
 
 	return prev;

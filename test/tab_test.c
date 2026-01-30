@@ -17,7 +17,7 @@
 
 /* Minimal mock of cg_server for testing */
 struct mock_server {
-	char padding[176];  /* Pad to match cg_server layout where tabs is at offset 176 */
+	char padding[184];  /* Pad to match cg_server layout where tabs is at offset 184 */
 	struct wl_list tabs;
 	struct cg_tab *active_tab;
 };
