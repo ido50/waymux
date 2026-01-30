@@ -82,8 +82,9 @@ Tests for tab management:
 - Tab navigation (next/previous with wraparound)
 - NULL pointer handling
 - View-to-tab lookup
+- Background tab filtering
 
-**Note**: Tab tests use a stub implementation (`tab_test_stubs.c`) to avoid linking the entire WayMux codebase. Only the pure data structure functions are tested.
+**Note**: Tab tests link against the actual tab.c implementation to ensure they test the real code. The `tab_test_stubs.c` file only provides stubs for external dependencies (view functions, scene graph functions, etc.) that have heavy dependencies. This ensures tests verify the actual implementation rather than duplicate code.
 
 ## Adding New Tests
 

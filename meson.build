@@ -210,21 +210,15 @@ if check.found()
     include_directories: include_directories('.'),
   )
 
-  # Tab tests - create testable library with only the functions we need
-  # We compile tab.c without the functions that require full view integration
-  tab_test_lib = static_library(
-    'tab_test_lib',
-    'test/tab_test_stubs.c',  # Will create stubs for functions we don't test
-    dependencies: test_deps,
-    include_directories: include_directories('.'),
-  )
-
+  # Tab tests - link against real tab.c implementation
+  # tab_test_stubs.c only provides stubs for functions with heavy dependencies
   test_tab = executable(
     'tab_test',
     'test/tab_test.c',
+    'tab.c',
+    'test/tab_test_stubs.c',
     dependencies: test_deps,
     include_directories: include_directories('.'),
-    link_with: tab_test_lib,
   )
 
   # Control server tests

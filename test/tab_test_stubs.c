@@ -7,150 +7,74 @@
  */
 
 /*
- * This file contains testable implementations of tab functions
- * that don't require the full WayMux infrastructure.
+ * Stubs for external dependencies of tab.c
+ *
+ * This file provides stubs for functions that tab.c depends on but which
+ * have heavy dependencies (scene graph, rendering, etc.). The actual
+ * tab functions (tab_count, tab_next, tab_prev, tab_from_view, tab_set_background)
+ * are tested by linking against the real tab.c implementation.
  */
 
 #define _POSIX_C_SOURCE 200809L
 
 #include <stdlib.h>
 #include <wayland-server-core.h>
+#include <wlr/util/log.h>
+#include <wlr/types/wlr_scene.h>
 
 #include "server.h"
-#include "tab.h"
+#include "tab_bar.h"
+#include "view.h"
 
-int
-tab_count(struct cg_server *server)
-{
-	if (!server) {
-		return 0;
-	}
-
-	int count = 0;
-	struct cg_tab *tab;
-	wl_list_for_each(tab, &server->tabs, link) {
-		count++;
-	}
-	return count;
-}
-
-/* Add stubs for other functions to avoid linker errors */
+/* Stub for view_activate called by tab_activate */
 void
-tab_activate(struct cg_tab *tab)
+view_activate(struct cg_view *view, bool activated)
 {
-	(void)tab;
-	/* Stub - not tested */
-}
-
-void
-tab_set_background(struct cg_tab *tab, bool background)
-{
-	(void)tab;
-	(void)background;
-	/* Stub - not tested */
-}
-
-struct cg_tab *
-tab_create(struct cg_server *server, struct cg_view *view)
-{
-	(void)server;
 	(void)view;
-	return NULL;
+	(void)activated;
+	/* Stub - requires view system integration */
 }
 
+/* Stub for view_position called by tab_activate */
 void
-tab_destroy(struct cg_tab *tab)
+view_position(struct cg_view *view)
 {
-	(void)tab;
-	/* Stub - not tested */
+	(void)view;
+	/* Stub - requires output and scene graph */
 }
 
-struct cg_tab *
-tab_next(struct cg_tab *current)
+/* Stub for tab_bar_update called by tab_set_background and tab_create */
+void
+tab_bar_update(struct cg_tab_bar *tab_bar)
 {
-	if (!current) {
-		return NULL;
-	}
-
-	struct cg_server *server = current->server;
-	struct cg_tab *next = NULL;
-	struct cg_tab *start = current;
-
-	/* Get next tab in list, with wraparound */
-	if (current->link.next != &server->tabs) {
-		next = wl_container_of(current->link.next, next, link);
-	} else {
-		/* Wrap to first tab */
-		next = wl_container_of(server->tabs.next, next, link);
-	}
-
-	/* Skip background tabs */
-	while (next && next->is_background && next != start) {
-		if (next->link.next != &server->tabs) {
-			next = wl_container_of(next->link.next, next, link);
-		} else {
-			/* Wrap to first tab */
-			next = wl_container_of(server->tabs.next, next, link);
-		}
-	}
-
-	/* If we couldn't find a non-background tab (wrapped around to background only), return current */
-	if (next && next->is_background) {
-		return current;
-	}
-
-	return next;
+	(void)tab_bar;
+	/* Stub - requires rendering system */
 }
 
-struct cg_tab *
-tab_prev(struct cg_tab *current)
+/* Stub for wlr_scene_tree_create called by tab_create */
+struct wlr_scene_tree *
+wlr_scene_tree_create(struct wlr_scene_tree *parent)
 {
-	if (!current) {
-		return NULL;
-	}
-
-	struct cg_server *server = current->server;
-	struct cg_tab *prev = NULL;
-	struct cg_tab *start = current;
-
-	/* Get previous tab in list, with wraparound */
-	if (current->link.prev != &server->tabs) {
-		prev = wl_container_of(current->link.prev, prev, link);
-	} else {
-		/* Wrap to last tab */
-		prev = wl_container_of(server->tabs.prev, prev, link);
-	}
-
-	/* Skip background tabs */
-	while (prev && prev->is_background && prev != start) {
-		if (prev->link.prev != &server->tabs) {
-			prev = wl_container_of(prev->link.prev, prev, link);
-		} else {
-			/* Wrap to last tab */
-			prev = wl_container_of(server->tabs.prev, prev, link);
-		}
-	}
-
-	/* If we couldn't find a non-background tab (wrapped around to background only), return current */
-	if (prev && prev->is_background) {
-		return current;
-	}
-
-	return prev;
+	(void)parent;
+	/* Return a dummy allocation - tests won't actually use it */
+	struct wlr_scene_tree *tree = calloc(1, sizeof(struct wlr_scene_tree));
+	return tree;
 }
 
-struct cg_tab *
-tab_from_view(struct cg_view *view)
+/* Stub for wlr_scene_node_set_enabled called by tab_create and tab_activate */
+void
+wlr_scene_node_set_enabled(struct wlr_scene_node *node, bool enabled)
 {
-	if (!view || !view->server) {
-		return NULL;
-	}
+	(void)node;
+	(void)enabled;
+	/* Stub - scene graph manipulation */
+}
 
-	struct cg_tab *tab;
-	wl_list_for_each(tab, &view->server->tabs, link) {
-		if (tab->view == view) {
-			return tab;
-		}
+/* Stub for wlr_scene_node_destroy called by tab_destroy */
+void
+wlr_scene_node_destroy(struct wlr_scene_node *node)
+{
+	if (node) {
+		free(node);
 	}
-	return NULL;
 }
