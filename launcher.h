@@ -15,6 +15,7 @@ struct cg_launcher {
 	struct cg_server *server;
 	struct wlr_scene_tree *scene_tree;
 	struct wlr_scene_rect *background;
+	struct wlr_scene_buffer *content_buffer;  /* Rendered launcher UI */
 	bool is_visible;
 
 	/* Search state */
