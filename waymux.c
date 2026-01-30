@@ -59,6 +59,7 @@
 #include "launcher.h"
 #include "output.h"
 #include "profile.h"
+#include "registry.h"
 #include "seat.h"
 #include "server.h"
 #include "tab_bar.h"
@@ -391,6 +392,13 @@ spawn_profile_tab(struct cg_server *server, struct profile *profile, struct prof
 static bool
 spawn_profile_tabs(struct cg_server *server, const char *profile_name)
 {
+	/* Check if profile is already in use by another instance */
+	if (registry_is_profile_locked(profile_name)) {
+		wlr_log(WLR_ERROR, "Profile '%s' is already in use by another instance", profile_name);
+		fprintf(stderr, "Error: Profile '%s' is already in use by another WayMux instance\n", profile_name);
+		return false;
+	}
+
 	struct profile *profile = profile_load(profile_name);
 	if (!profile) {
 		wlr_log(WLR_ERROR, "Failed to load profile: %s", profile_name);
@@ -412,6 +420,14 @@ spawn_profile_tabs(struct cg_server *server, const char *profile_name)
 		wlr_log(WLR_DEBUG, "Profile environment variables: %d", profile->env_count);
 	}
 
+	/* Store profile name in server */
+	server->profile_name = strdup(profile_name);
+	if (!server->profile_name) {
+		wlr_log_errno(WLR_ERROR, "Failed to allocate profile name");
+		profile_free(profile);
+		return false;
+	}
+
 	/* Spawn each tab in the profile */
 	for (int i = 0; i < profile->tab_count; i++) {
 		struct profile_tab *tab = &profile->tabs[i];
@@ -422,6 +438,13 @@ spawn_profile_tabs(struct cg_server *server, const char *profile_name)
 	}
 
 	profile_free(profile);
+
+	/* Register this instance in the registry */
+	if (!registry_register_instance(server)) {
+		wlr_log(WLR_ERROR, "Failed to register instance in registry");
+		/* Continue anyway - this is not fatal */
+	}
+
 	return true;
 }
 
@@ -442,6 +465,9 @@ main(int argc, char *argv[])
 		wlr_log_errno(WLR_ERROR, "Failed to allocate default instance name");
 		return 1;
 	}
+
+	/* Initialize profile name to NULL */
+	server.profile_name = NULL;
 
 #ifdef DEBUG
 	server.log_level = WLR_DEBUG;
@@ -881,10 +907,15 @@ end:
 	control_server_destroy(server.control);
 	desktop_entry_manager_destroy(server.desktop_entries);
 	launcher_destroy(server.launcher);
+
+	/* Unregister this instance from the registry */
+	registry_unregister_instance(&server);
+
 	/* This function is not null-safe, but we only ever get here
 	   with a proper wl_display. */
 	free(server.wl_display_socket);
 	free(server.instance_name);
+	free(server.profile_name);
 	wl_display_destroy(server.wl_display);
 	wlr_scene_node_destroy(&server.scene->tree.node);
 	wlr_allocator_destroy(server.allocator);
