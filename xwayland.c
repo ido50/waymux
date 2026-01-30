@@ -99,6 +99,14 @@ static void
 maximize(struct cg_view *view, int output_width, int output_height)
 {
 	struct cg_xwayland_view *xwayland_view = xwayland_view_from_view(view);
+
+	/* Validate dimensions before configuring */
+	if (output_width <= 0 || output_height <= 0) {
+		wlr_log(WLR_DEBUG, "Not configuring: invalid dimensions %dx%d",
+		        output_width, output_height);
+		return;
+	}
+
 	wlr_xwayland_surface_configure(xwayland_view->xwayland_surface, view->lx, view->ly, output_width,
 				       output_height);
 	wlr_xwayland_surface_set_maximized(xwayland_view->xwayland_surface, true, true);

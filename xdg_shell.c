@@ -181,6 +181,14 @@ static void
 maximize(struct cg_view *view, int output_width, int output_height)
 {
 	struct cg_xdg_shell_view *xdg_shell_view = xdg_shell_view_from_view(view);
+
+	/* Validate dimensions before setting size */
+	if (output_width <= 0 || output_height <= 0) {
+		wlr_log(WLR_DEBUG, "Not setting size: invalid dimensions %dx%d",
+		        output_width, output_height);
+		return;
+	}
+
 	wlr_xdg_toplevel_set_size(xdg_shell_view->xdg_toplevel, output_width, output_height);
 	wlr_xdg_toplevel_set_maximized(xdg_shell_view->xdg_toplevel, true);
 }
@@ -215,7 +223,13 @@ handle_xdg_toplevel_request_fullscreen(struct wl_listener *listener, void *data)
 	 */
 	struct wlr_box layout_box;
 	wlr_output_layout_get_box(xdg_shell_view->view.server->output_layout, NULL, &layout_box);
-	wlr_xdg_toplevel_set_size(xdg_shell_view->xdg_toplevel, layout_box.width, layout_box.height);
+
+	/* Validate dimensions before setting size */
+	if (layout_box.width > 0 && layout_box.height > 0) {
+		wlr_xdg_toplevel_set_size(xdg_shell_view->xdg_toplevel,
+		                         layout_box.width, layout_box.height);
+	}
+
 	wlr_xdg_toplevel_set_fullscreen(xdg_shell_view->xdg_toplevel, fullscreen);
 	wlr_foreign_toplevel_handle_v1_set_fullscreen(xdg_shell_view->view.foreign_toplevel_handle, fullscreen);
 }
