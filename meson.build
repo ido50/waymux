@@ -175,6 +175,7 @@ executable(
 waymuxctl = executable(
   'waymuxctl',
   'waymuxctl.c',
+  dependencies: [libtomlc17],
   install: true,
 )
 

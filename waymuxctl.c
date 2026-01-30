@@ -15,8 +15,10 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <tomlc17.h>
 
 #define CONTROL_BUFFER_SIZE 4096
+#define REGISTRY_DIR "/waymux/registry"
 
 /* Instance name to connect to (NULL = use default or auto-detect) */
 static const char *target_instance = NULL;
@@ -143,6 +145,111 @@ send_command(const char *command)
 	return 0;
 }
 
+/* List all running instances from the registry
+ * Returns 0 on success, -1 on failure
+ */
+static int
+list_instances(void)
+{
+	const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
+	if (!runtime_dir) {
+		fprintf(stderr, "ERROR: XDG_RUNTIME_DIR not set\n");
+		return -1;
+	}
+
+	/* Build registry directory path */
+	char registry_dir[PATH_MAX];
+	int len = snprintf(registry_dir, sizeof(registry_dir), "%s%s", runtime_dir, REGISTRY_DIR);
+	if (len < 0 || (size_t)len >= sizeof(registry_dir)) {
+		fprintf(stderr, "ERROR: Registry path too long\n");
+		return -1;
+	}
+
+	/* Open registry directory */
+	DIR *dir = opendir(registry_dir);
+	if (!dir) {
+		if (errno == ENOENT) {
+			/* No registry directory means no instances */
+			printf("No running instances\n");
+			return 0;
+		}
+		perror("ERROR: Failed to open registry directory");
+		return -1;
+	}
+
+	struct dirent *entry;
+	int instance_count = 0;
+
+	printf("Running instances:\n");
+
+	while ((entry = readdir(dir)) != NULL) {
+		/* Skip . and .. */
+		if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+			continue;
+		}
+
+		/* Check if it's a .toml file */
+		size_t name_len = strlen(entry->d_name);
+		if (name_len < 6 || strcmp(entry->d_name + name_len - 5, ".toml") != 0) {
+			continue;
+		}
+
+		/* Build full path */
+		char file_path[PATH_MAX];
+		len = snprintf(file_path, sizeof(file_path), "%s/%s", registry_dir, entry->d_name);
+		if (len < 0 || (size_t)len >= sizeof(file_path)) {
+			continue;
+		}
+
+		/* Parse the TOML file */
+		toml_result_t result = toml_parse_file_ex(file_path);
+		if (!result.ok) {
+			fprintf(stderr, "Warning: Failed to parse %s\n", file_path);
+			continue;
+		}
+
+		/* Extract instance name from filename (remove .toml extension) */
+		char instance_name[PATH_MAX];
+		strncpy(instance_name, entry->d_name, name_len - 5);
+		instance_name[name_len - 5] = '\0';
+
+		/* Get PID */
+		toml_datum_t pid_datum = toml_get(result.toptab, "pid");
+		int pid = -1;
+		if (pid_datum.type == TOML_INT64) {
+			pid = (int)pid_datum.u.int64;
+		}
+
+		/* Get profile (optional) */
+		toml_datum_t profile_datum = toml_get(result.toptab, "profile");
+		const char *profile = NULL;
+		if (profile_datum.type == TOML_STRING && profile_datum.u.s) {
+			profile = profile_datum.u.s;
+		}
+
+		/* Print instance info */
+		printf("  %s", instance_name);
+		if (profile) {
+			printf(" (profile: %s)", profile);
+		}
+		if (pid > 0) {
+			printf(" [pid: %d]", pid);
+		}
+		printf("\n");
+
+		toml_free(result);
+		instance_count++;
+	}
+
+	closedir(dir);
+
+	if (instance_count == 0) {
+		printf("  (none)\n");
+	}
+
+	return 0;
+}
+
 static void
 usage(const char *prog_name)
 {
@@ -150,6 +257,7 @@ usage(const char *prog_name)
 	fprintf(stderr, "\nOptions:\n");
 	fprintf(stderr, "  -i, --instance <NAME>  Target specific instance (default: 'default')\n");
 	fprintf(stderr, "\nCommands:\n");
+	fprintf(stderr, "  instances              List all running instances\n");
 	fprintf(stderr, "  list-tabs              List all tabs\n");
 	fprintf(stderr, "  focus-tab <NUM>        Switch to tab NUM\n");
 	fprintf(stderr, "  close-tab [--force] <NUM>  Close tab NUM\n");
@@ -200,7 +308,10 @@ main(int argc, char *argv[])
 	/* Build command string for server */
 	char server_cmd[CONTROL_BUFFER_SIZE];
 
-	if (strcmp(command, "list-tabs") == 0) {
+	if (strcmp(command, "instances") == 0) {
+		return list_instances() == 0 ? 0 : 1;
+
+	} else if (strcmp(command, "list-tabs") == 0) {
 		snprintf(server_cmd, sizeof(server_cmd), "list-tabs");
 		return send_command(server_cmd) == 0 ? 0 : 1;
 
