@@ -1,6 +1,7 @@
 #include "tab_bar.h"
 
 #include "output.h"
+#include "pixel_buffer.h"
 #include "server.h"
 #include "tab.h"
 #include "view.h"
@@ -45,50 +46,6 @@ tab_bar_color_new_tab_bg[] = {0.15f, 0.16f, 0.18f, 1.0f};  /* New tab button */
 #define TAB_ELLIPSIS "..."
 #define TAB_CLOSE_BUTTON_SIZE 16
 #define TAB_CLOSE_BUTTON_PADDING 4
-
-/* Custom buffer that wraps pixel data */
-struct pixel_buffer {
-	struct wlr_buffer base;
-	uint32_t *data;
-	int width;
-	int height;
-	size_t size;
-};
-
-static void
-pixel_buffer_destroy(struct pixel_buffer *buffer)
-{
-	if (!buffer) return;
-	if (buffer->data) {
-		free(buffer->data);
-	}
-	wlr_buffer_finish(&buffer->base);
-	free(buffer);
-}
-
-static bool
-pixel_buffer_begin_data_ptr_access(struct wlr_buffer *wlr_buffer,
-				    uint32_t flags, void **data_out,
-				    uint32_t *format, size_t *stride)
-{
-	struct pixel_buffer *buffer = wl_container_of(wlr_buffer, buffer, base);
-	*data_out = buffer->data;
-	*format = DRM_FORMAT_ARGB8888;
-	*stride = buffer->width * 4;
-	return true;
-}
-
-static void
-pixel_buffer_end_data_ptr_access(struct wlr_buffer *wlr_buffer)
-{
-	/* Nothing to do */
-}
-
-static const struct wlr_buffer_impl pixel_buffer_impl = {
-	.destroy = (void*)pixel_buffer_destroy,
-	.begin_data_ptr_access = pixel_buffer_begin_data_ptr_access,
-	.end_data_ptr_access = pixel_buffer_end_data_ptr_access,
-};
 
 /* Draw a rounded rectangle path */
 static void

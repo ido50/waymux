@@ -1,6 +1,7 @@
 #include "launcher.h"
 #include "desktop_entry.h"
 #include "output.h"
+#include "pixel_buffer.h"
 #include "server.h"
 #include <wlr/util/log.h>
 #include <xkbcommon/xkbcommon.h>
@@ -29,50 +30,6 @@ static const float launcher_box_bg[4] = {0.12f, 0.12f, 0.12f, 1.0f};  /* Dark bo
 static const float launcher_selected_bg[4] = {0.22f, 0.33f, 0.44f, 1.0f};  /* Selected item */
 static const float launcher_text[4] = {1.0f, 1.0f, 1.0f, 1.0f};  /* White text */
 static const float launcher_query_bg[4] = {0.08f, 0.08f, 0.08f, 1.0f};  /* Search box */
-
-/* Custom buffer that wraps pixel data */
-struct pixel_buffer {
-	struct wlr_buffer base;
-	uint32_t *data;
-	int width;
-	int height;
-	size_t size;
-};
-
-static void
-pixel_buffer_destroy(struct pixel_buffer *buffer)
-{
-	if (!buffer) return;
-	if (buffer->data) {
-		free(buffer->data);
-	}
-	wlr_buffer_finish(&buffer->base);
-	free(buffer);
-}
-
-static bool
-pixel_buffer_begin_data_ptr_access(struct wlr_buffer *wlr_buffer,
-				    uint32_t flags, void **data_out,
-				    uint32_t *format, size_t *stride)
-{
-	struct pixel_buffer *buffer = wl_container_of(wlr_buffer, buffer, base);
-	*data_out = buffer->data;
-	*format = DRM_FORMAT_ARGB8888;
-	*stride = buffer->width * 4;
-	return true;
-}
-
-static void
-pixel_buffer_end_data_ptr_access(struct wlr_buffer *wlr_buffer)
-{
-	/* Nothing to do */
-}
-
-static const struct wlr_buffer_impl pixel_buffer_impl = {
-	.destroy = (void*)pixel_buffer_destroy,
-	.begin_data_ptr_access = pixel_buffer_begin_data_ptr_access,
-	.end_data_ptr_access = pixel_buffer_end_data_ptr_access,
-};
 
 /* Render launcher UI to a buffer */
 static struct wlr_buffer *
