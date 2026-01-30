@@ -126,6 +126,13 @@ get_title(struct cg_view *view)
 	return xdg_shell_view->xdg_toplevel->title;
 }
 
+static char *
+get_app_id(struct cg_view *view)
+{
+	struct cg_xdg_shell_view *xdg_shell_view = xdg_shell_view_from_view(view);
+	return xdg_shell_view->xdg_toplevel->app_id;
+}
+
 static void
 get_geometry(struct cg_view *view, int *width_out, int *height_out)
 {
@@ -273,6 +280,7 @@ handle_xdg_toplevel_destroy(struct wl_listener *listener, void *data)
 
 static const struct cg_view_impl xdg_shell_view_impl = {
 	.get_title = get_title,
+	.get_app_id = get_app_id,
 	.get_geometry = get_geometry,
 	.is_primary = is_primary,
 	.is_transient_for = is_transient_for,
@@ -287,6 +295,10 @@ handle_new_xdg_toplevel(struct wl_listener *listener, void *data)
 {
 	struct cg_server *server = wl_container_of(listener, server, new_xdg_toplevel);
 	struct wlr_xdg_toplevel *toplevel = data;
+
+	wlr_log(WLR_DEBUG, "New XDG toplevel created, app_id: %s, title: %s",
+		toplevel->app_id ? toplevel->app_id : "(null)",
+		toplevel->title ? toplevel->title : "(null)");
 
 	struct cg_xdg_shell_view *xdg_shell_view = calloc(1, sizeof(struct cg_xdg_shell_view));
 	if (!xdg_shell_view) {

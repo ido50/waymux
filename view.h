@@ -40,6 +40,7 @@ struct cg_view {
 
 struct cg_view_impl {
 	char *(*get_title)(struct cg_view *view);
+	char *(*get_app_id)(struct cg_view *view);
 	void (*get_geometry)(struct cg_view *view, int *width_out, int *height_out);
 	bool (*is_primary)(struct cg_view *view);
 	bool (*is_transient_for)(struct cg_view *child, struct cg_view *parent);
@@ -50,6 +51,7 @@ struct cg_view_impl {
 };
 
 char *view_get_title(struct cg_view *view);
+char *view_get_app_id(struct cg_view *view);
 bool view_is_primary(struct cg_view *view);
 bool view_is_transient_for(struct cg_view *child, struct cg_view *parent);
 void view_activate(struct cg_view *view, bool activate);

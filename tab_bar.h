@@ -10,14 +10,16 @@ struct cg_server;
 #define TAB_BAR_MAX_TABS 256
 
 /* Tab bar dimensions */
-#define TAB_BAR_HEIGHT 32
-#define TAB_BAR_PADDING 8
-#define TAB_BUTTON_WIDTH 120
+#define TAB_BAR_HEIGHT 48
+#define TAB_BAR_PADDING 6
+#define TAB_BUTTON_WIDTH 140
 #define TAB_BUTTON_GAP 4
 #define TAB_NEW_TAB_BUTTON_WIDTH 80
 
 struct cg_tab_bar_button {
 	struct wlr_scene_rect *background;
+	struct wlr_scene_buffer *text_buffer;
+	void *text_surface; /* cairo_surface_t*, forward declared to avoid including cairo */
 };
 
 struct cg_tab_bar {

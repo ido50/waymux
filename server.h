@@ -30,6 +30,7 @@ enum cg_multi_output_mode {
 
 struct cg_server {
 	struct wl_display *wl_display;
+	char *wl_display_socket; /* Wayland display socket name */
 	struct wl_list views;
 	struct wlr_backend *backend;
 	struct wlr_renderer *renderer;
@@ -96,6 +97,7 @@ struct cg_server {
 	bool return_app_code;
 	bool terminated;
 	enum wlr_log_importance log_level;
+	uint32_t leader_modifier; /* Key modifier for tab shortcuts (default: logo/Super) */
 };
 
 void server_terminate(struct cg_server *server);

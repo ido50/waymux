@@ -7,8 +7,8 @@
 #include "launcher.h"
 
 #include <linux/input-event-codes.h>
-#include <wlr/util/log.h>
 #include <stdlib.h>
+#include <wlr/util/log.h>
 
 static float
 tab_bar_color_active[] = {0.2f, 0.4f, 0.8f, 1.0f};  /* Blue */
@@ -18,6 +18,8 @@ static float
 tab_bar_color_bg[] = {0.15f, 0.15f, 0.15f, 1.0f};   /* Dark gray */
 static float
 tab_bar_color_new_tab[] = {0.3f, 0.6f, 0.3f, 1.0f}; /* Green */
+
+#define TAB_TEXT_PADDING 4
 
 struct cg_tab_bar *
 tab_bar_create(struct cg_server *server)
@@ -59,6 +61,15 @@ tab_bar_create(struct cg_server *server)
 		tab_bar_destroy(tab_bar);
 		return NULL;
 	}
+	tab_bar->new_tab_button.text_buffer = NULL;
+	tab_bar->new_tab_button.text_surface = NULL;
+
+	/* Initialize tab buttons */
+	for (int i = 0; i < TAB_BAR_MAX_TABS; i++) {
+		tab_bar->tabs[i].background = NULL;
+		tab_bar->tabs[i].text_buffer = NULL;
+		tab_bar->tabs[i].text_surface = NULL;
+	}
 
 	/* Initially hide tab bar until we have tabs */
 	wlr_scene_node_set_enabled(&tab_bar->scene_tree->node, false);
@@ -72,6 +83,26 @@ tab_bar_destroy(struct cg_tab_bar *tab_bar)
 {
 	if (!tab_bar) {
 		return;
+	}
+
+	/* Clean up old tab buttons */
+	for (int i = 0; i < TAB_BAR_MAX_TABS; i++) {
+		if (tab_bar->tabs[i].text_surface) {
+			free(tab_bar->tabs[i].text_surface);
+		}
+		if (tab_bar->tabs[i].text_buffer) {
+			wlr_scene_node_destroy(&tab_bar->tabs[i].text_buffer->node);
+		}
+		if (tab_bar->tabs[i].background) {
+			wlr_scene_node_destroy(&tab_bar->tabs[i].background->node);
+		}
+	}
+
+	if (tab_bar->new_tab_button.text_surface) {
+		free(tab_bar->new_tab_button.text_surface);
+	}
+	if (tab_bar->new_tab_button.text_buffer) {
+		wlr_scene_node_destroy(&tab_bar->new_tab_button.text_buffer->node);
 	}
 
 	/* Scene tree cleanup destroys all children */
@@ -97,16 +128,27 @@ tab_bar_update_layout(struct cg_tab_bar *tab_bar)
 	wlr_scene_rect_set_size(tab_bar->background,
 		tab_bar->width, tab_bar->height);
 
-	/* Position tab bar at bottom of layout */
-	int y = layout_box.height - tab_bar->height;
-	wlr_scene_node_set_position(&tab_bar->scene_tree->node, 0, y);
+	/* Position tab bar at top of layout */
+	wlr_scene_node_set_position(&tab_bar->scene_tree->node, 0, 0);
+
+	wlr_log(WLR_DEBUG, "Tab bar layout: width=%d, height=%d, y=0 (top), layout_height=%d",
+		tab_bar->width, tab_bar->height, layout_box.height);
 
 	/* Position tabs */
 	int x = TAB_BAR_PADDING;
 	for (int i = 0; i < tab_bar->tab_count; i++) {
+		if (!tab_bar->tabs[i].background) continue;
+
 		struct wlr_scene_node *bg_node =
 			&tab_bar->tabs[i].background->node;
 		wlr_scene_node_set_position(bg_node, x, TAB_BAR_PADDING);
+
+		if (tab_bar->tabs[i].text_buffer) {
+			wlr_scene_node_set_position(&tab_bar->tabs[i].text_buffer->node,
+						    x + TAB_TEXT_PADDING,
+						    TAB_BAR_PADDING);
+		}
+
 		x += TAB_BUTTON_WIDTH + TAB_BUTTON_GAP;
 	}
 
@@ -114,6 +156,12 @@ tab_bar_update_layout(struct cg_tab_bar *tab_bar)
 	int new_tab_x = tab_bar->width - TAB_NEW_TAB_BUTTON_WIDTH - TAB_BAR_PADDING;
 	wlr_scene_node_set_position(&tab_bar->new_tab_button.background->node,
 		new_tab_x, TAB_BAR_PADDING);
+
+	if (tab_bar->new_tab_button.text_buffer) {
+		wlr_scene_node_set_position(&tab_bar->new_tab_button.text_buffer->node,
+					    new_tab_x + TAB_TEXT_PADDING,
+					    TAB_BAR_PADDING);
+	}
 }
 
 void
@@ -121,10 +169,19 @@ tab_bar_update(struct cg_tab_bar *tab_bar)
 {
 	struct cg_server *server = tab_bar->server;
 
-	/* Destroy old tab buttons */
-	for (int i = 0; i < tab_bar->tab_count; i++) {
+	/* Clean up old tab buttons */
+	for (int i = 0; i < TAB_BAR_MAX_TABS; i++) {
+		if (tab_bar->tabs[i].text_surface) {
+			free(tab_bar->tabs[i].text_surface);
+			tab_bar->tabs[i].text_surface = NULL;
+		}
+		if (tab_bar->tabs[i].text_buffer) {
+			wlr_scene_node_destroy(&tab_bar->tabs[i].text_buffer->node);
+			tab_bar->tabs[i].text_buffer = NULL;
+		}
 		if (tab_bar->tabs[i].background) {
 			wlr_scene_node_destroy(&tab_bar->tabs[i].background->node);
+			tab_bar->tabs[i].background = NULL;
 		}
 	}
 
@@ -152,8 +209,19 @@ tab_bar_update(struct cg_tab_bar *tab_bar)
 
 		if (!tab_bar->tabs[index].background) {
 			wlr_log(WLR_ERROR, "Failed to create tab button background");
+			index++;
+			tab_bar->tab_count++;
 			continue;
 		}
+
+		/* Get tab title for display (store as string for future text rendering) */
+		char *view_title = NULL;
+		if (tab->view) {
+			view_title = view_get_title(tab->view);
+		}
+
+		/* Store title for future use (text rendering to be implemented) */
+		tab_bar->tabs[index].text_surface = view_title;
 
 		index++;
 		tab_bar->tab_count++;
@@ -163,6 +231,12 @@ tab_bar_update(struct cg_tab_bar *tab_bar)
 	if (tab_bar->tab_count > 0) {
 		wlr_scene_node_set_enabled(&tab_bar->scene_tree->node, true);
 		tab_bar_update_layout(tab_bar);
+
+		/* Raise tab bar to top so it appears above views */
+		wlr_scene_node_raise_to_top(&tab_bar->scene_tree->node);
+
+		/* Reposition all views to account for tab bar space */
+		view_position_all(server);
 	} else {
 		wlr_scene_node_set_enabled(&tab_bar->scene_tree->node, false);
 	}

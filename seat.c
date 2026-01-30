@@ -98,19 +98,11 @@ press_cursor_button(struct cg_seat *seat, struct wlr_input_device *device, uint3
 	struct cg_server *server = seat->server;
 
 	if (state == WLR_BUTTON_PRESSED) {
-		/* Check if click is on tab bar first */
-		if (server->tab_bar) {
-			struct wlr_box layout_box;
-			wlr_output_layout_get_box(server->output_layout, NULL, &layout_box);
-			int tab_bar_y = layout_box.height - server->tab_bar->height;
-
-			/* Convert to tab bar local coordinates */
-			double tab_bar_x = lx;
-			double tab_bar_y_local = ly - tab_bar_y;
-
-			/* Check if click is within tab bar bounds */
-			if (tab_bar_y_local >= 0 && tab_bar_y_local < server->tab_bar->height) {
-				if (tab_bar_handle_click(server->tab_bar, tab_bar_x, tab_bar_y_local, button)) {
+		/* Check if click is on tab bar first (tab bar is at top: y=0 to y=height) */
+		if (server->tab_bar && server->tab_bar->scene_tree->node.enabled) {
+			/* Tab bar is at the top of the layout */
+			if (ly >= 0 && ly < server->tab_bar->height) {
+				if (tab_bar_handle_click(server->tab_bar, lx, ly, button)) {
 					return;
 				}
 			}
@@ -243,6 +235,10 @@ handle_new_pointer(struct cg_seat *seat, struct wlr_pointer *wlr_pointer)
 	wl_signal_add(&wlr_pointer->base.events.destroy, &pointer->destroy);
 
 	map_input_device_to_output(seat, &wlr_pointer->base, wlr_pointer->output_name);
+
+	/* Set initial cursor image */
+	wlr_cursor_set_xcursor(seat->cursor, seat->xcursor_manager, DEFAULT_XCURSOR);
+	wlr_cursor_warp(seat->cursor, NULL, seat->cursor->x, seat->cursor->y);
 }
 
 static void
@@ -384,8 +380,8 @@ handle_key_event(struct wlr_keyboard *keyboard, struct cg_seat *seat, void *data
 			}
 		}
 
-		/* Check for WayMux tab keybindings (Super + key) */
-		if (!handled && (modifiers & WLR_MODIFIER_LOGO)) {
+		/* Check for WayMux tab keybindings (leader modifier + key) */
+		if (!handled && (modifiers & seat->server->leader_modifier)) {
 			for (int i = 0; i < nsyms; i++) {
 				if (handle_tab_keybinding(seat->server, syms[i])) {
 					handled = true;
@@ -729,9 +725,25 @@ process_cursor_motion(struct cg_seat *seat, uint32_t time_msec, double dx, doubl
 	struct wlr_seat *wlr_seat = seat->seat;
 	struct wlr_surface *surface = NULL;
 
+	/* Check if cursor is over the tab bar */
+	struct cg_server *server = seat->server;
+	if (server->tab_bar && server->tab_bar->scene_tree->node.enabled) {
+		/* Tab bar is at the top (y=0 to y=height) */
+		if (seat->cursor->y >= 0 && seat->cursor->y < server->tab_bar->height) {
+			/* Clear focus from any surface when over tab bar */
+			wlr_seat_pointer_clear_focus(wlr_seat);
+			/* Set pointer cursor */
+			wlr_cursor_set_xcursor(seat->cursor, seat->xcursor_manager, "pointer");
+			wlr_idle_notifier_v1_notify_activity(server->idle, wlr_seat);
+			return;
+		}
+	}
+
 	struct cg_view *view = desktop_view_at(seat->server, seat->cursor->x, seat->cursor->y, &surface, &sx, &sy);
 	if (!view) {
 		wlr_seat_pointer_clear_focus(wlr_seat);
+		/* Reset to default cursor */
+		wlr_cursor_set_xcursor(seat->cursor, seat->xcursor_manager, DEFAULT_XCURSOR);
 	} else {
 		wlr_seat_pointer_notify_enter(wlr_seat, surface, sx, sy);
 		wlr_seat_pointer_notify_motion(wlr_seat, time_msec, sx, sy);

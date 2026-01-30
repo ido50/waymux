@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <wayland-server-core.h>
@@ -247,6 +248,8 @@ usage(FILE *file, const char *waymux)
 		" -d\t Don't draw client side decorations, when possible\n"
 		" -D\t Enable debug logging\n"
 		" -h\t Display this help message\n"
+		" -L <mod> Set leader modifier for tab shortcuts (default: super)\n"
+		"         Options: super, ctrl, alt, shift\n"
 		" -m extend Extend the display across all connected outputs (default)\n"
 		" -m last Use only the last connected output\n"
 		" -s\t Allow VT switching\n"
@@ -260,7 +263,7 @@ static bool
 parse_args(struct cg_server *server, int argc, char *argv[])
 {
 	int c;
-	while ((c = getopt(argc, argv, "dDhm:sv")) != -1) {
+	while ((c = getopt(argc, argv, "dDhL:m:sv")) != -1) {
 		switch (c) {
 		case 'd':
 			server->xdg_decoration = true;
@@ -271,6 +274,21 @@ parse_args(struct cg_server *server, int argc, char *argv[])
 		case 'h':
 			usage(stdout, argv[0]);
 			return false;
+		case 'L':
+			if (strcmp(optarg, "super") == 0) {
+				server->leader_modifier = WLR_MODIFIER_LOGO;
+			} else if (strcmp(optarg, "ctrl") == 0) {
+				server->leader_modifier = WLR_MODIFIER_CTRL;
+			} else if (strcmp(optarg, "alt") == 0) {
+				server->leader_modifier = WLR_MODIFIER_ALT;
+			} else if (strcmp(optarg, "shift") == 0) {
+				server->leader_modifier = WLR_MODIFIER_SHIFT;
+			} else {
+				fprintf(stderr, "Invalid modifier: %s\n", optarg);
+				usage(stderr, argv[0]);
+				return false;
+			}
+			break;
 		case 'm':
 			if (strcmp(optarg, "last") == 0) {
 				server->output_mode = WAYMUX_MULTI_OUTPUT_MODE_LAST;
@@ -300,6 +318,9 @@ main(int argc, char *argv[])
 	struct wl_event_source *sigchld_source = NULL;
 	pid_t pid = 0;
 	int ret = 0, app_ret = 0;
+
+	/* Set default leader modifier to Super (Logo) */
+	server.leader_modifier = WLR_MODIFIER_LOGO;
 
 #ifdef DEBUG
 	server.log_level = WLR_DEBUG;
@@ -649,6 +670,15 @@ main(int argc, char *argv[])
 		goto end;
 	}
 
+	/* Store socket name for later use (spawning new tabs, etc.) */
+	server.wl_display_socket = strdup(socket);
+	if (!server.wl_display_socket) {
+		wlr_log_errno(WLR_ERROR, "Unable to duplicate socket name");
+		ret = 1;
+		goto end;
+	}
+	wlr_log(WLR_INFO, "Stored WayMux socket name: %s", server.wl_display_socket);
+
 	if (!wlr_backend_start(server.backend)) {
 		wlr_log(WLR_ERROR, "Unable to start the wlroots backend");
 		ret = 1;
@@ -717,6 +747,7 @@ end:
 	launcher_destroy(server.launcher);
 	/* This function is not null-safe, but we only ever get here
 	   with a proper wl_display. */
+	free(server.wl_display_socket);
 	wl_display_destroy(server.wl_display);
 	wlr_scene_node_destroy(&server.scene->tree.node);
 	wlr_allocator_destroy(server.allocator);

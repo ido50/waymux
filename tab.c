@@ -44,8 +44,8 @@ tab_create(struct cg_server *server, struct cg_view *view)
 	/* Initially hide the tab */
 	wlr_scene_node_set_enabled(&tab->scene_tree->node, false);
 
-	/* Add to server's tab list */
-	wl_list_insert(&server->tabs, &tab->link);
+	/* Add to server's tab list (append to end) */
+	wl_list_insert(server->tabs.prev, &tab->link);
 
 	/* Update tab bar to show new tab */
 	if (server->tab_bar) {
@@ -119,6 +119,8 @@ tab_activate(struct cg_tab *tab)
 
 	if (tab->scene_tree) {
 		wlr_scene_node_set_enabled(&tab->scene_tree->node, true);
+		/* Raise active tab to top of scene graph so it appears above other tabs */
+		wlr_scene_node_raise_to_top(&tab->scene_tree->node);
 	}
 
 	if (tab->view) {

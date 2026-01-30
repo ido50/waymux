@@ -140,10 +140,22 @@ send_command(const char *command)
 	/* Read response */
 	char buffer[CONTROL_BUFFER_SIZE];
 	ssize_t n;
+	bool first_line = true;
 
 	while ((n = recv(sock_fd, buffer, CONTROL_BUFFER_SIZE - 1, 0)) > 0) {
 		buffer[n] = '\0';
-		fwrite(buffer, 1, n, stdout);
+
+		/* Skip the protocol status line (e.g., "OK 1") */
+		if (first_line) {
+			char *newline = strchr(buffer, '\n');
+			if (newline) {
+				/* Print everything after the first line */
+				fwrite(newline + 1, 1, n - (newline - buffer + 1), stdout);
+				first_line = false;
+			}
+		} else {
+			fwrite(buffer, 1, n, stdout);
+		}
 	}
 
 	if (n < 0) {

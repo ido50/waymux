@@ -21,6 +21,8 @@
 #include "output.h"
 #include "seat.h"
 #include "server.h"
+#include "tab.h"
+#include "tab_bar.h"
 #include "view.h"
 #if WAYMUX_HAS_XWAYLAND
 #include "xwayland.h"
@@ -34,6 +36,19 @@ view_get_title(struct cg_view *view)
 		return NULL;
 	}
 	return strndup(title, strlen(title));
+}
+
+char *
+view_get_app_id(struct cg_view *view)
+{
+	if (!view->impl->get_app_id) {
+		return NULL;
+	}
+	const char *app_id = view->impl->get_app_id(view);
+	if (!app_id) {
+		return NULL;
+	}
+	return strndup(app_id, strlen(app_id));
 }
 
 bool
@@ -70,11 +85,21 @@ view_maximize(struct cg_view *view, struct wlr_box *layout_box)
 	view->lx = layout_box->x;
 	view->ly = layout_box->y;
 
+	int width = layout_box->width;
+	int height = layout_box->height;
+
+	/* Reserve space for tab bar if it exists */
+	if (view->server->tab_bar && view->server->tab_bar->scene_tree->node.enabled) {
+		/* Tab bar is at the top, so offset view y and reduce height */
+		view->ly += view->server->tab_bar->height;
+		height -= view->server->tab_bar->height;
+	}
+
 	if (view->scene_tree) {
 		wlr_scene_node_set_position(&view->scene_tree->node, view->lx, view->ly);
 	}
 
-	view->impl->maximize(view, layout_box->width, layout_box->height);
+	view->impl->maximize(view, width, height);
 }
 
 static void
@@ -148,7 +173,18 @@ handle_surface_request_close(struct wl_listener *listener, void *data)
 void
 view_map(struct cg_view *view, struct wlr_surface *surface)
 {
-	view->scene_tree = wlr_scene_subsurface_tree_create(&view->server->scene->tree, surface);
+	/* Create a tab for this view */
+	wlr_log(WLR_DEBUG, "view_map: Creating tab for view %p", (void *)view);
+	struct cg_tab *tab = tab_create(view->server, view);
+	if (!tab) {
+		wlr_log(WLR_ERROR, "Failed to create tab for view");
+		goto fail;
+	}
+
+	wlr_log(WLR_DEBUG, "view_map: Tab %p created for view %p", (void *)tab, (void *)view);
+
+	/* Create view's scene tree as a child of tab's scene tree */
+	view->scene_tree = wlr_scene_subsurface_tree_create(tab->scene_tree, surface);
 	if (!view->scene_tree)
 		goto fail;
 	view->scene_tree->node.data = view;
@@ -176,10 +212,17 @@ view_map(struct cg_view *view, struct wlr_surface *surface)
 	view->request_close.notify = handle_surface_request_close;
 	wl_signal_add(&view->foreign_toplevel_handle->events.request_close, &view->request_close);
 
+	wlr_log(WLR_DEBUG, "view_map: Activating tab %p for view %p", (void *)tab, (void *)view);
+
+	/* Activate the new tab */
+	tab_activate(tab);
+
 	seat_set_focus(view->server->seat, view);
+	wlr_log(WLR_DEBUG, "view_map: Tab %p activated, view mapped successfully", (void *)tab);
 	return;
 
 fail:
+	wlr_log(WLR_ERROR, "view_map: Failed to map view");
 	wl_resource_post_no_memory(surface->resource);
 }
 

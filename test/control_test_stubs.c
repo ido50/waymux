@@ -36,6 +36,13 @@ view_get_title(struct cg_view *view)
 	return NULL;
 }
 
+char *
+view_get_app_id(struct cg_view *view)
+{
+	(void)view;
+	return NULL;
+}
+
 /* Launcher stub - this should be in launcher.c, but we need to stub it here for testing */
 void launcher_show(struct cg_launcher *launcher) {
 	(void)launcher;

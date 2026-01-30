@@ -39,6 +39,13 @@ get_title(struct cg_view *view)
 	return xwayland_view->xwayland_surface->title;
 }
 
+static char *
+get_app_id(struct cg_view *view)
+{
+	struct cg_xwayland_view *xwayland_view = xwayland_view_from_view(view);
+	return xwayland_view->xwayland_surface->class;
+}
+
 static void
 get_geometry(struct cg_view *view, int *width_out, int *height_out)
 {
@@ -172,6 +179,7 @@ handle_xwayland_surface_destroy(struct wl_listener *listener, void *data)
 
 static const struct cg_view_impl xwayland_view_impl = {
 	.get_title = get_title,
+	.get_app_id = get_app_id,
 	.get_geometry = get_geometry,
 	.is_primary = is_primary,
 	.is_transient_for = is_transient_for,
@@ -206,6 +214,10 @@ handle_xwayland_surface_new(struct wl_listener *listener, void *data)
 {
 	struct cg_server *server = wl_container_of(listener, server, new_xwayland_surface);
 	struct wlr_xwayland_surface *xwayland_surface = data;
+
+	wlr_log(WLR_DEBUG, "New XWayland surface: title='%s', class='%s'",
+		xwayland_surface->title ? xwayland_surface->title : "(null)",
+		xwayland_surface->class ? xwayland_surface->class : "(null)");
 
 	struct cg_xwayland_view *xwayland_view = calloc(1, sizeof(struct cg_xwayland_view));
 	if (!xwayland_view) {
