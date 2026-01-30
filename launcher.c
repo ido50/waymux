@@ -495,9 +495,6 @@ launcher_destroy(struct cg_launcher *launcher)
 static void
 launcher_update_results(struct cg_launcher *launcher)
 {
-	struct wl_list result_list;
-	struct cg_desktop_entry *entry, *tmp;
-
 	/* Initialize results */
 	launcher->result_count = 0;
 	launcher->selected_index = 0;
@@ -506,20 +503,13 @@ launcher_update_results(struct cg_launcher *launcher)
 		return;
 	}
 
-	/* Search desktop entries */
-	wl_list_init(&result_list);
-	desktop_entry_manager_search(launcher->server->desktop_entries,
-	                             launcher->query, &result_list);
-
-	/* Copy results to launcher (up to max) */
-	size_t i = 0;
-	wl_list_for_each_safe(entry, tmp, &result_list, link) {
-		if (i >= 256) {
-			break;
-		}
-		launcher->results[i++] = entry;
-		launcher->result_count = i;
-	}
+	/* Search desktop entries directly into launcher's results array */
+	launcher->result_count = desktop_entry_manager_search(
+		launcher->server->desktop_entries,
+		launcher->query,
+		launcher->results,
+		256  /* max_results */
+	);
 
 	/* Log results for debugging */
 	wlr_log(WLR_DEBUG, "Launcher query: '%s', results: %zu",
@@ -544,7 +534,6 @@ launcher_show(struct cg_launcher *launcher)
 	launcher->query[0] = '\0';
 	launcher->query_len = 0;
 	launcher->selected_index = 0;
-	launcher->dirty = true;  /* Mark as dirty to trigger initial render */
 
 	/* Get the first output's dimensions */
 	struct cg_output *output;

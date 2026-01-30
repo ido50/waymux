@@ -27,11 +27,12 @@ void desktop_entry_manager_destroy(struct cg_desktop_entry_manager *manager);
 int desktop_entry_manager_load(struct cg_desktop_entry_manager *manager);
 
 /* Search/filter entries by query (case-insensitive substring match) */
-/* Returns a list of matching entries. Caller should NOT free the entries. */
-void desktop_entry_manager_search(
+/* Returns the number of matching entries (up to max_results) */
+size_t desktop_entry_manager_search(
 	struct cg_desktop_entry_manager *manager,
 	const char *query,
-	struct wl_list *result  /* struct wl_list of cg_desktop_entry */
+	struct cg_desktop_entry **results,
+	size_t max_results
 );
 
 /* Free a single entry (internal use) */

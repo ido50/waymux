@@ -55,18 +55,12 @@ START_TEST(test_manager_search_empty)
 	wl_list_insert(&manager->entries, &entry2->link);
 
 	/* Search with empty query should return all non-NoDisplay entries */
-	struct wl_list result;
-	desktop_entry_manager_search(manager, "", &result);
+	struct cg_desktop_entry *results[10];
+	size_t count = desktop_entry_manager_search(manager, "", results, 10);
 
-	/* Count results - we just verify the function doesn't crash
-	 * Note: The search implementation moves entries to the result list,
-	 * so we need to free them from there. */
+	ck_assert_uint_eq(count, 2);
 
-	/* Cleanup - free entries from result list and destroy manager */
-	struct cg_desktop_entry *entry, *tmp;
-	wl_list_for_each_safe(entry, tmp, &result, link) {
-		desktop_entry_destroy(entry);
-	}
+	/* Cleanup - manager_destroy will free all entries */
 	desktop_entry_manager_destroy(manager);
 }
 END_TEST
@@ -90,16 +84,13 @@ START_TEST(test_manager_search_query)
 	wl_list_insert(&manager->entries, &entry2->link);
 
 	/* Search for "fire" should match Firefox */
-	struct wl_list result;
-	desktop_entry_manager_search(manager, "fire", &result);
+	struct cg_desktop_entry *results[10];
+	size_t count = desktop_entry_manager_search(manager, "fire", results, 10);
 
-	/* Just verify the function doesn't crash */
+	ck_assert_uint_eq(count, 1);
+	ck_assert_str_eq(results[0]->name, "Firefox");
 
-	/* Cleanup - free entries from result list and destroy manager */
-	struct cg_desktop_entry *entry, *tmp;
-	wl_list_for_each_safe(entry, tmp, &result, link) {
-		desktop_entry_destroy(entry);
-	}
+	/* Cleanup - manager_destroy will free all entries */
 	desktop_entry_manager_destroy(manager);
 }
 END_TEST
@@ -123,16 +114,13 @@ START_TEST(test_manager_search_nodisplay)
 	wl_list_insert(&manager->entries, &entry2->link);
 
 	/* Empty query should only return visible entries */
-	struct wl_list result;
-	desktop_entry_manager_search(manager, "", &result);
+	struct cg_desktop_entry *results[10];
+	size_t count = desktop_entry_manager_search(manager, "", results, 10);
 
-	/* Just verify the function doesn't crash */
+	ck_assert_uint_eq(count, 1);
+	ck_assert_str_eq(results[0]->name, "Visible App");
 
-	/* Cleanup - free entries from result list and destroy manager */
-	struct cg_desktop_entry *entry, *tmp;
-	wl_list_for_each_safe(entry, tmp, &result, link) {
-		desktop_entry_destroy(entry);
-	}
+	/* Cleanup - manager_destroy will free all entries */
 	desktop_entry_manager_destroy(manager);
 }
 END_TEST
@@ -150,16 +138,12 @@ START_TEST(test_manager_search_null)
 	wl_list_insert(&manager->entries, &entry1->link);
 
 	/* NULL query should return all entries */
-	struct wl_list result;
-	desktop_entry_manager_search(manager, NULL, &result);
+	struct cg_desktop_entry *results[10];
+	size_t count = desktop_entry_manager_search(manager, NULL, results, 10);
 
-	/* Just verify the function doesn't crash */
+	ck_assert_uint_eq(count, 1);
 
-	/* Cleanup - free entries from result list and destroy manager */
-	struct cg_desktop_entry *entry, *tmp;
-	wl_list_for_each_safe(entry, tmp, &result, link) {
-		desktop_entry_destroy(entry);
-	}
+	/* Cleanup - manager_destroy will free all entries */
 	desktop_entry_manager_destroy(manager);
 }
 END_TEST
@@ -183,11 +167,12 @@ END_TEST
 /* Test: desktop_entry_manager_search with NULL manager */
 START_TEST(test_manager_search_null_manager)
 {
-	struct wl_list result;
-	wl_list_init(&result);
+	struct cg_desktop_entry *results[10];
 
-	/* Should not crash */
-	desktop_entry_manager_search(NULL, "test", &result);
+	/* Should not crash and return 0 */
+	size_t count = desktop_entry_manager_search(NULL, "test", results, 10);
+
+	ck_assert_uint_eq(count, 0);
 }
 END_TEST
 
@@ -210,16 +195,13 @@ START_TEST(test_manager_search_case_insensitive)
 	wl_list_insert(&manager->entries, &entry2->link);
 
 	/* Lowercase search should match uppercase entry */
-	struct wl_list result;
-	desktop_entry_manager_search(manager, "fire", &result);
+	struct cg_desktop_entry *results[10];
+	size_t count = desktop_entry_manager_search(manager, "fire", results, 10);
 
-	/* Just verify the function doesn't crash */
+	ck_assert_uint_eq(count, 1);
+	ck_assert_str_eq(results[0]->name, "FIREFOX");
 
-	/* Cleanup - free entries from result list and destroy manager */
-	struct cg_desktop_entry *entry, *tmp;
-	wl_list_for_each_safe(entry, tmp, &result, link) {
-		desktop_entry_destroy(entry);
-	}
+	/* Cleanup - manager_destroy will free all entries */
 	desktop_entry_manager_destroy(manager);
 }
 END_TEST

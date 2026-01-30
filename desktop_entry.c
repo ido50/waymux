@@ -267,26 +267,30 @@ desktop_entry_manager_load(struct cg_desktop_entry_manager *manager)
 	return count;
 }
 
-void
+/* Search for desktop entries matching query.
+ * Populates results array with pointers to matching entries.
+ * Returns the number of results found (up to max_results).
+ */
+size_t
 desktop_entry_manager_search(struct cg_desktop_entry_manager *manager,
-	const char *query, struct wl_list *result)
+	const char *query, struct cg_desktop_entry **results, size_t max_results)
 {
-	if (!manager || !result) {
-		return;
+	if (!manager || !results || max_results == 0) {
+		return 0;
 	}
 
-	wl_list_init(result);
+	size_t count = 0;
 
 	/* If query is empty, return all entries */
 	if (!query || query[0] == '\0') {
 		struct cg_desktop_entry *entry;
 		wl_list_for_each(entry, &manager->entries, link) {
 			/* Filter out NoDisplay entries */
-			if (!entry->nodisplay) {
-				wl_list_insert(result, &entry->link);
+			if (!entry->nodisplay && count < max_results) {
+				results[count++] = entry;
 			}
 		}
-		return;
+		return count;
 	}
 
 	/* Case-insensitive substring search */
@@ -298,6 +302,10 @@ desktop_entry_manager_search(struct cg_desktop_entry_manager *manager,
 
 	struct cg_desktop_entry *entry;
 	wl_list_for_each(entry, &manager->entries, link) {
+		if (count >= max_results) {
+			break;
+		}
+
 		/* Skip NoDisplay entries */
 		if (entry->nodisplay) {
 			continue;
@@ -311,9 +319,11 @@ desktop_entry_manager_search(struct cg_desktop_entry_manager *manager,
 		}
 
 		if (strstr(name_lower, query_lower) != NULL) {
-			wl_list_insert(result, &entry->link);
+			results[count++] = entry;
 		}
 	}
+
+	return count;
 }
 
 void
