@@ -152,6 +152,28 @@ view_unmap(struct cg_view *view)
 
 	view->wlr_surface->data = NULL;
 	view->wlr_surface = NULL;
+
+	/* Find and destroy the associated tab */
+	struct cg_tab *tab = tab_from_view(view);
+	if (tab) {
+		/* Clear the view pointer to prevent accessing freed memory */
+		tab->view = NULL;
+
+		/* Update tab bar to remove the closed tab */
+		if (view->server->tab_bar) {
+			tab_bar_update(view->server->tab_bar);
+		}
+
+		/* Destroy the tab (without closing the view again) */
+		wl_list_remove(&tab->link);
+		if (view->server->active_tab == tab) {
+			view->server->active_tab = NULL;
+		}
+		if (tab->scene_tree) {
+			wlr_scene_node_destroy(&tab->scene_tree->node);
+		}
+		free(tab);
+	}
 }
 
 void

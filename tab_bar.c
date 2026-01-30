@@ -286,6 +286,11 @@ tab_bar_update(struct cg_tab_bar *tab_bar)
 			break;
 		}
 
+		/* Skip tabs without views (being destroyed) */
+		if (!tab->view) {
+			continue;
+		}
+
 		/* Determine if this is the active tab */
 		bool is_active = (tab == server->active_tab);
 		float *color = is_active ? tab_bar_color_active :
