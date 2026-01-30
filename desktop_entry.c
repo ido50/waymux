@@ -279,11 +279,10 @@ desktop_entry_manager_search(struct cg_desktop_entry_manager *manager,
 
 	/* If query is empty, return all entries */
 	if (!query || query[0] == '\0') {
-		struct cg_desktop_entry *entry, *tmp;
-		wl_list_for_each_safe(entry, tmp, &manager->entries, link) {
+		struct cg_desktop_entry *entry;
+		wl_list_for_each(entry, &manager->entries, link) {
 			/* Filter out NoDisplay entries */
 			if (!entry->nodisplay) {
-				wl_list_remove(&entry->link);
 				wl_list_insert(result, &entry->link);
 			}
 		}
@@ -297,8 +296,8 @@ desktop_entry_manager_search(struct cg_desktop_entry_manager *manager,
 		query_lower[i] = tolower(query_lower[i]);
 	}
 
-	struct cg_desktop_entry *entry, *tmp;
-	wl_list_for_each_safe(entry, tmp, &manager->entries, link) {
+	struct cg_desktop_entry *entry;
+	wl_list_for_each(entry, &manager->entries, link) {
 		/* Skip NoDisplay entries */
 		if (entry->nodisplay) {
 			continue;
@@ -312,7 +311,6 @@ desktop_entry_manager_search(struct cg_desktop_entry_manager *manager,
 		}
 
 		if (strstr(name_lower, query_lower) != NULL) {
-			wl_list_remove(&entry->link);
 			wl_list_insert(result, &entry->link);
 		}
 	}
