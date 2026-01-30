@@ -11,11 +11,29 @@
 
 #include <stdbool.h>
 
+/* Single tab in a profile */
+struct profile_tab {
+	char *command;
+	char *title;
+	char **args;  /* NULL-terminated array */
+	int argc;
+};
+
+/* Environment variable in a profile */
+struct profile_env {
+	char *key;
+	char *value;
+};
+
 /* Profile structure representing a parsed TOML profile */
 struct profile {
 	char *name;
 	char *working_dir;
 	char *proxy_command;
+	struct profile_env *env_vars;
+	int env_count;
+	struct profile_tab *tabs;
+	int tab_count;
 };
 
 /**

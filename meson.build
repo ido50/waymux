@@ -239,9 +239,19 @@ if check.found()
     include_directories: include_directories('.'),
   )
 
+  # Profile tests
+  test_profile = executable(
+    'profile_test',
+    'test/profile_test.c',
+    'profile.c',
+    dependencies: test_deps + [libtomlc17],
+    include_directories: include_directories('.'),
+  )
+
   # Run tests
   test('desktop_entry', test_desktop_entry)
   test('tab', test_tab)
   test('control', test_control)
   test('waymuxctl', test_waymuxctl)
+  test('profile', test_profile)
 endif
