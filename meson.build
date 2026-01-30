@@ -118,6 +118,7 @@ endif
 
 waymux = [
   'waymux.c',
+  'background_dialog.c',
   'control.c',
   'desktop_entry.c',
   'idle_inhibit_v1.c',
@@ -136,6 +137,7 @@ waymux_headers = [
   configure_file(input: 'config.h.in',
                  output: 'config.h',
                  configuration: conf_data),
+  'background_dialog.h',
   'control.h',
   'desktop_entry.h',
   'idle_inhibit_v1.h',

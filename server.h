@@ -22,6 +22,7 @@
 struct cg_launcher;
 struct cg_desktop_entry_manager;
 struct cg_tab_bar;
+struct cg_background_dialog;
 
 enum cg_multi_output_mode {
 	WAYMUX_MULTI_OUTPUT_MODE_EXTEND,
@@ -58,6 +59,9 @@ struct cg_server {
 	/* Application launcher */
 	struct cg_launcher *launcher;
 	struct cg_desktop_entry_manager *desktop_entries;
+
+	/* Background tabs dialog */
+	struct cg_background_dialog *background_dialog;
 
 	/* Tab bar UI */
 	struct cg_tab_bar *tab_bar;

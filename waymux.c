@@ -58,6 +58,7 @@
 #include "idle_inhibit_v1.h"
 #include "launcher.h"
 #include "output.h"
+#include "background_dialog.h"
 #include "profile.h"
 #include "registry.h"
 #include "seat.h"
@@ -576,6 +577,14 @@ main(int argc, char *argv[])
 	server.tab_bar = tab_bar_create(&server);
 	if (!server.tab_bar) {
 		wlr_log(WLR_ERROR, "Unable to create tab bar");
+		ret = 1;
+		goto end;
+	}
+
+	/* Create background tabs dialog */
+	server.background_dialog = background_dialog_create(&server);
+	if (!server.background_dialog) {
+		wlr_log(WLR_ERROR, "Unable to create background dialog");
 		ret = 1;
 		goto end;
 	}

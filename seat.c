@@ -37,6 +37,7 @@
 #endif
 
 #include "launcher.h"
+#include "background_dialog.h"
 #include "output.h"
 #include "seat.h"
 #include "server.h"
@@ -294,8 +295,14 @@ handle_keybinding(struct cg_server *server, xkb_keysym_t sym)
 
 /* Handle WayMux-specific tab keybindings with Super (logo) modifier */
 static bool
-handle_tab_keybinding(struct cg_server *server, xkb_keysym_t sym)
+handle_tab_keybinding(struct cg_server *server, xkb_keysym_t sym, uint32_t modifiers)
 {
+	/* Super+Shift+b: show background tabs dialog */
+	if (sym == XKB_KEY_b && (modifiers & WLR_MODIFIER_SHIFT)) {
+		background_dialog_toggle(server->background_dialog);
+		return true;
+	}
+
 	/* Super+j: previous tab */
 	if (sym == XKB_KEY_j) {
 		if (server->active_tab) {
@@ -352,7 +359,7 @@ handle_tab_keybinding(struct cg_server *server, xkb_keysym_t sym)
 		return true;
 	}
 
-	/* Super+b: toggle current tab background status */
+	/* Super+b: toggle current tab background status (without Shift) */
 	if (sym == XKB_KEY_b) {
 		if (server->active_tab) {
 			struct cg_tab *current = server->active_tab;
@@ -401,10 +408,20 @@ handle_key_event(struct wlr_keyboard *keyboard, struct cg_seat *seat, void *data
 			}
 		}
 
+		/* If background dialog is visible, forward keys to it */
+		if (!handled && seat->server->background_dialog && seat->server->background_dialog->is_visible) {
+			for (int i = 0; i < nsyms; i++) {
+				if (background_dialog_handle_key(seat->server->background_dialog, syms[i], event->keycode)) {
+					handled = true;
+					break;
+				}
+			}
+		}
+
 		/* Check for WayMux tab keybindings (leader modifier + key) */
 		if (!handled && (modifiers & seat->server->leader_modifier)) {
 			for (int i = 0; i < nsyms; i++) {
-				if (handle_tab_keybinding(seat->server, syms[i])) {
+				if (handle_tab_keybinding(seat->server, syms[i], modifiers)) {
 					handled = true;
 					break;
 				}
