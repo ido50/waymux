@@ -1,0 +1,14 @@
+# Test profile for WayMux
+working_dir = "/tmp"
+
+[env]
+TEST_VAR = "test_value"
+DEBUG = "1"
+
+[[tabs]]
+command = "foot"
+title = "Terminal"
+
+[[tabs]]
+command = "kitty"
+title = "Kitty Terminal"
