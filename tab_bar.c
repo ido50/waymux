@@ -8,18 +8,139 @@
 
 #include <linux/input-event-codes.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wlr/util/log.h>
+#include <cairo/cairo.h>
+#include <drm/drm_fourcc.h>
+#include <wlr/interfaces/wlr_buffer.h>
 
 static float
-tab_bar_color_active[] = {0.2f, 0.4f, 0.8f, 1.0f};  /* Blue */
+tab_bar_color_active[] = {0.22f, 0.33f, 0.44f, 1.0f};  /* Kitty-like active blue-gray */
 static float
-tab_bar_color_inactive[] = {0.3f, 0.3f, 0.3f, 1.0f}; /* Gray */
+tab_bar_color_inactive[] = {0.12f, 0.12f, 0.12f, 1.0f}; /* Dark gray for inactive */
 static float
-tab_bar_color_bg[] = {0.15f, 0.15f, 0.15f, 1.0f};   /* Dark gray */
+tab_bar_color_bg[] = {0.0f, 0.0f, 0.0f, 1.0f};       /* Pure black background */
 static float
-tab_bar_color_new_tab[] = {0.3f, 0.6f, 0.3f, 1.0f}; /* Green */
+tab_bar_color_new_tab[] = {0.16f, 0.16f, 0.16f, 1.0f};  /* Slightly lighter than inactive */
 
 #define TAB_TEXT_PADDING 4
+
+/* Custom buffer that wraps pixel data */
+struct pixel_buffer {
+	struct wlr_buffer base;
+	uint32_t *data;
+	int width;
+	int height;
+	size_t size;
+};
+
+static void
+pixel_buffer_destroy(struct pixel_buffer *buffer)
+{
+	if (!buffer) return;
+	if (buffer->data) {
+		free(buffer->data);
+	}
+	wlr_buffer_finish(&buffer->base);
+	free(buffer);
+}
+
+static bool
+pixel_buffer_begin_data_ptr_access(struct wlr_buffer *wlr_buffer,
+				    uint32_t flags, void **data_out,
+				    uint32_t *format, size_t *stride)
+{
+	struct pixel_buffer *buffer = wl_container_of(wlr_buffer, buffer, base);
+	*data_out = buffer->data;
+	*format = DRM_FORMAT_ARGB8888;
+	*stride = buffer->width * 4;
+	return true;
+}
+
+static void
+pixel_buffer_end_data_ptr_access(struct wlr_buffer *wlr_buffer)
+{
+	/* Nothing to do */
+}
+
+static const struct wlr_buffer_impl pixel_buffer_impl = {
+	.destroy = (void*)pixel_buffer_destroy,
+	.begin_data_ptr_access = pixel_buffer_begin_data_ptr_access,
+	.end_data_ptr_access = pixel_buffer_end_data_ptr_access,
+};
+
+/* Create a wlr_buffer with rendered text and background */
+static struct wlr_buffer *
+create_text_buffer(const char *text, int width, int height, float *bg_color)
+{
+	/* Allocate buffer data */
+	size_t stride = width * 4;
+	size_t size = height * stride;
+	uint32_t *data = calloc(1, size);
+	if (!data) {
+		return NULL;
+	}
+
+	/* Create cairo surface */
+	cairo_surface_t *surface = cairo_image_surface_create_for_data(
+		(unsigned char *)data, CAIRO_FORMAT_ARGB32, width, height, stride);
+	if (cairo_surface_status(surface) != CAIRO_STATUS_SUCCESS) {
+		free(data);
+		return NULL;
+	}
+
+	cairo_t *cr = cairo_create(surface);
+	if (!cr) {
+		cairo_surface_destroy(surface);
+		free(data);
+		return NULL;
+	}
+
+	/* Draw background */
+	cairo_set_source_rgba(cr, bg_color[0], bg_color[1], bg_color[2], bg_color[3]);
+	cairo_paint(cr);
+
+	/* Draw text */
+	if (text && strlen(text) > 0) {
+		cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL,
+				      CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_set_font_size(cr, 11);
+		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0); /* White text */
+
+		/* Truncate text if too long */
+		char truncated[256];
+		snprintf(truncated, sizeof(truncated), "%s", text);
+
+		/* Center text horizontally and vertically */
+		cairo_text_extents_t extents;
+		cairo_text_extents(cr, truncated, &extents);
+
+		double x = (width - extents.width) / 2 - extents.x_bearing;
+		double y = (height + extents.height) / 2 - extents.y_bearing;
+
+		cairo_move_to(cr, x, y);
+		cairo_show_text(cr, truncated);
+	}
+
+	cairo_destroy(cr);
+	cairo_surface_finish(surface);
+	cairo_surface_destroy(surface);
+
+	/* Create wlr_buffer wrapper */
+	struct pixel_buffer *buffer = calloc(1, sizeof(*buffer));
+	if (!buffer) {
+		free(data);
+		return NULL;
+	}
+
+	wlr_buffer_init(&buffer->base, &pixel_buffer_impl, width, height);
+	buffer->data = data;
+	buffer->width = width;
+	buffer->height = height;
+	buffer->size = size;
+
+	return &buffer->base;
+}
 
 struct cg_tab_bar *
 tab_bar_create(struct cg_server *server)
@@ -51,24 +172,14 @@ tab_bar_create(struct cg_server *server)
 		return NULL;
 	}
 
-	/* Create new tab button */
-	tab_bar->new_tab_button.background = wlr_scene_rect_create(
-		tab_bar->scene_tree, TAB_NEW_TAB_BUTTON_WIDTH,
-		TAB_BAR_HEIGHT - 2 * TAB_BAR_PADDING,
-		tab_bar_color_new_tab);
-	if (!tab_bar->new_tab_button.background) {
-		wlr_log(WLR_ERROR, "Failed to create new tab button background");
-		tab_bar_destroy(tab_bar);
-		return NULL;
-	}
+	/* Create new tab button (background + text will be in buffer) */
+	tab_bar->new_tab_button.background = NULL;
 	tab_bar->new_tab_button.text_buffer = NULL;
-	tab_bar->new_tab_button.text_surface = NULL;
 
 	/* Initialize tab buttons */
 	for (int i = 0; i < TAB_BAR_MAX_TABS; i++) {
 		tab_bar->tabs[i].background = NULL;
 		tab_bar->tabs[i].text_buffer = NULL;
-		tab_bar->tabs[i].text_surface = NULL;
 	}
 
 	/* Initially hide tab bar until we have tabs */
@@ -87,22 +198,15 @@ tab_bar_destroy(struct cg_tab_bar *tab_bar)
 
 	/* Clean up old tab buttons */
 	for (int i = 0; i < TAB_BAR_MAX_TABS; i++) {
-		if (tab_bar->tabs[i].text_surface) {
-			free(tab_bar->tabs[i].text_surface);
-		}
 		if (tab_bar->tabs[i].text_buffer) {
 			wlr_scene_node_destroy(&tab_bar->tabs[i].text_buffer->node);
-		}
-		if (tab_bar->tabs[i].background) {
-			wlr_scene_node_destroy(&tab_bar->tabs[i].background->node);
+			tab_bar->tabs[i].text_buffer = NULL;
 		}
 	}
 
-	if (tab_bar->new_tab_button.text_surface) {
-		free(tab_bar->new_tab_button.text_surface);
-	}
 	if (tab_bar->new_tab_button.text_buffer) {
 		wlr_scene_node_destroy(&tab_bar->new_tab_button.text_buffer->node);
+		tab_bar->new_tab_button.text_buffer = NULL;
 	}
 
 	/* Scene tree cleanup destroys all children */
@@ -137,16 +241,9 @@ tab_bar_update_layout(struct cg_tab_bar *tab_bar)
 	/* Position tabs */
 	int x = TAB_BAR_PADDING;
 	for (int i = 0; i < tab_bar->tab_count; i++) {
-		if (!tab_bar->tabs[i].background) continue;
-
-		struct wlr_scene_node *bg_node =
-			&tab_bar->tabs[i].background->node;
-		wlr_scene_node_set_position(bg_node, x, TAB_BAR_PADDING);
-
 		if (tab_bar->tabs[i].text_buffer) {
 			wlr_scene_node_set_position(&tab_bar->tabs[i].text_buffer->node,
-						    x + TAB_TEXT_PADDING,
-						    TAB_BAR_PADDING);
+						    x, TAB_BAR_PADDING);
 		}
 
 		x += TAB_BUTTON_WIDTH + TAB_BUTTON_GAP;
@@ -154,13 +251,9 @@ tab_bar_update_layout(struct cg_tab_bar *tab_bar)
 
 	/* Position new tab button on the right */
 	int new_tab_x = tab_bar->width - TAB_NEW_TAB_BUTTON_WIDTH - TAB_BAR_PADDING;
-	wlr_scene_node_set_position(&tab_bar->new_tab_button.background->node,
-		new_tab_x, TAB_BAR_PADDING);
-
 	if (tab_bar->new_tab_button.text_buffer) {
 		wlr_scene_node_set_position(&tab_bar->new_tab_button.text_buffer->node,
-					    new_tab_x + TAB_TEXT_PADDING,
-					    TAB_BAR_PADDING);
+					    new_tab_x, TAB_BAR_PADDING);
 	}
 }
 
@@ -171,10 +264,6 @@ tab_bar_update(struct cg_tab_bar *tab_bar)
 
 	/* Clean up old tab buttons */
 	for (int i = 0; i < TAB_BAR_MAX_TABS; i++) {
-		if (tab_bar->tabs[i].text_surface) {
-			free(tab_bar->tabs[i].text_surface);
-			tab_bar->tabs[i].text_surface = NULL;
-		}
 		if (tab_bar->tabs[i].text_buffer) {
 			wlr_scene_node_destroy(&tab_bar->tabs[i].text_buffer->node);
 			tab_bar->tabs[i].text_buffer = NULL;
@@ -202,29 +291,54 @@ tab_bar_update(struct cg_tab_bar *tab_bar)
 		float *color = is_active ? tab_bar_color_active :
 			tab_bar_color_inactive;
 
-		/* Create tab button background */
-		tab_bar->tabs[index].background = wlr_scene_rect_create(
-			tab_bar->scene_tree, TAB_BUTTON_WIDTH,
-			TAB_BAR_HEIGHT - 2 * TAB_BAR_PADDING, color);
-
-		if (!tab_bar->tabs[index].background) {
-			wlr_log(WLR_ERROR, "Failed to create tab button background");
-			index++;
-			tab_bar->tab_count++;
-			continue;
-		}
-
-		/* Get tab title for display (store as string for future text rendering) */
+		/* Get tab title and app_id for display */
 		char *view_title = NULL;
+		char *view_app_id = NULL;
 		if (tab->view) {
 			view_title = view_get_title(tab->view);
+			view_app_id = view_get_app_id(tab->view);
 		}
 
-		/* Store title for future use (text rendering to be implemented) */
-		tab_bar->tabs[index].text_surface = view_title;
+		/* Create display text: app_id followed by title (truncated if needed) */
+		char display_text[512];
+		if (view_app_id && view_title) {
+			snprintf(display_text, sizeof(display_text), "%s: %s",
+				 view_app_id, view_title);
+		} else if (view_title) {
+			snprintf(display_text, sizeof(display_text), "%s", view_title);
+		} else if (view_app_id) {
+			snprintf(display_text, sizeof(display_text), "%s", view_app_id);
+		} else {
+			snprintf(display_text, sizeof(display_text), "Tab %d", index + 1);
+		}
+
+		/* Create buffer with rendered text and background */
+		struct wlr_buffer *buffer = create_text_buffer(
+			display_text, TAB_BUTTON_WIDTH,
+			TAB_BAR_HEIGHT - 2 * TAB_BAR_PADDING, color);
+
+		if (buffer) {
+			tab_bar->tabs[index].text_buffer =
+				wlr_scene_buffer_create(tab_bar->scene_tree, buffer);
+			wlr_buffer_drop(buffer); /* scene_buffer holds reference */
+		}
+
+		free(view_title);
+		free(view_app_id);
 
 		index++;
 		tab_bar->tab_count++;
+	}
+
+	/* Create text buffer for new tab button */
+	struct wlr_buffer *new_tab_buffer = create_text_buffer(
+		"+", TAB_NEW_TAB_BUTTON_WIDTH,
+		TAB_BAR_HEIGHT - 2 * TAB_BAR_PADDING, tab_bar_color_new_tab);
+
+	if (new_tab_buffer) {
+		tab_bar->new_tab_button.text_buffer =
+			wlr_scene_buffer_create(tab_bar->scene_tree, new_tab_buffer);
+		wlr_buffer_drop(new_tab_buffer);
 	}
 
 	/* Show tab bar if we have tabs */

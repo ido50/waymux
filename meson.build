@@ -41,6 +41,7 @@ wayland_protos = dependency('wayland-protocols', version: '>=1.14')
 wayland_server = dependency('wayland-server')
 xkbcommon      = dependency('xkbcommon')
 math           = cc.find_library('m')
+cairo          = dependency('cairo')
 check          = dependency('check', version: '>=0.15', required: get_option('tests'))
 
 wl_protocol_dir = wayland_protos.get_variable('pkgdatadir')
@@ -158,6 +159,7 @@ executable(
     wlroots,
     xkbcommon,
     math,
+    cairo,
   ],
   install: true,
 )

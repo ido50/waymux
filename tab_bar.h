@@ -19,7 +19,6 @@ struct cg_server;
 struct cg_tab_bar_button {
 	struct wlr_scene_rect *background;
 	struct wlr_scene_buffer *text_buffer;
-	void *text_surface; /* cairo_surface_t*, forward declared to avoid including cairo */
 };
 
 struct cg_tab_bar {
