@@ -75,7 +75,7 @@ tab_destroy(struct cg_tab *tab)
 		server->active_tab = NULL;
 	}
 
-	/* Remove from list BEFORE closing view to prevent tab_from_view from finding it */
+	/* Remove from list before closing view */
 	wl_list_remove(&tab->link);
 
 	/* Close the view and clear its reference to this tab.
@@ -252,18 +252,3 @@ tab_count(struct cg_server *server)
 	return count;
 }
 
-struct cg_tab *
-tab_from_view(struct cg_view *view)
-{
-	if (!view || !view->server) {
-		return NULL;
-	}
-
-	struct cg_tab *tab;
-	wl_list_for_each(tab, &view->server->tabs, link) {
-		if (tab->view == view) {
-			return tab;
-		}
-	}
-	return NULL;
-}

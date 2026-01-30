@@ -157,80 +157,6 @@ START_TEST(test_tab_navigation_null)
 }
 END_TEST
 
-/* Test: tab_from_view with NULL */
-START_TEST(test_tab_from_view_null)
-{
-	struct cg_tab *result;
-
-	result = tab_from_view(NULL);
-	ck_assert_ptr_null(result);
-
-	/* Test with view that has no server */
-	struct mock_view view;
-	memset(&view, 0, sizeof(view));
-	view.server = NULL;
-
-	result = tab_from_view((struct cg_view *)&view);
-	ck_assert_ptr_null(result);
-}
-END_TEST
-
-/* Test: tab_from_view with matching view */
-START_TEST(test_tab_from_view_found)
-{
-	struct mock_server server;
-	wl_list_init(&server.tabs);
-	server.active_tab = NULL;
-
-	/* Create view and tabs */
-	struct mock_view view;
-	memset(&view, 0, sizeof(view));
-	view.server = (struct cg_server *)&server;
-
-	struct cg_tab tab1, tab2;
-	memset(&tab1, 0, sizeof(tab1));
-	memset(&tab2, 0, sizeof(tab2));
-
-	tab1.server = (struct cg_server *)&server;
-	tab2.server = (struct cg_server *)&server;
-
-	tab1.view = (struct cg_view *)&view;
-	tab2.view = NULL;
-
-	wl_list_insert(&server.tabs, &tab1.link);
-	wl_list_insert(&tab1.link, &tab2.link);
-
-	/* Should find tab1 */
-	struct cg_tab *result = tab_from_view((struct cg_view *)&view);
-	ck_assert_ptr_eq(result, &tab1);
-}
-END_TEST
-
-/* Test: tab_from_view with no matching view */
-START_TEST(test_tab_from_view_not_found)
-{
-	struct mock_server server;
-	wl_list_init(&server.tabs);
-	server.active_tab = NULL;
-
-	/* Create view and tabs */
-	struct mock_view view;
-	memset(&view, 0, sizeof(view));
-	view.server = (struct cg_server *)&server;
-
-	struct cg_tab tab1;
-	memset(&tab1, 0, sizeof(tab1));
-
-	tab1.server = (struct cg_server *)&server;
-	tab1.view = NULL;
-
-	wl_list_insert(&server.tabs, &tab1.link);
-
-	/* Should not find anything */
-	struct cg_tab *result = tab_from_view((struct cg_view *)&view);
-	ck_assert_ptr_null(result);
-}
-END_TEST
 
 /* Test: single tab wraps to itself */
 START_TEST(test_tab_single_wraparound)
@@ -408,9 +334,6 @@ main(void)
 	/* Core tests */
 	tcase_add_test(tc_core, test_tab_count_empty);
 	tcase_add_test(tc_core, test_tab_count_multiple);
-	tcase_add_test(tc_core, test_tab_from_view_null);
-	tcase_add_test(tc_core, test_tab_from_view_found);
-	tcase_add_test(tc_core, test_tab_from_view_not_found);
 	tcase_add_test(tc_core, test_tab_set_background_null);
 	tcase_add_test(tc_core, test_tab_set_background);
 

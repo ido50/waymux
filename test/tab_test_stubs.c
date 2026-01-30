@@ -11,7 +11,7 @@
  *
  * This file provides stubs for functions that tab.c depends on but which
  * have heavy dependencies (scene graph, rendering, etc.). The actual
- * tab functions (tab_count, tab_next, tab_prev, tab_from_view, tab_set_background)
+ * tab functions (tab_count, tab_next, tab_prev, tab_set_background)
  * are tested by linking against the real tab.c implementation.
  */
 

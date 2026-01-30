@@ -43,7 +43,4 @@ struct cg_tab *tab_prev(struct cg_tab *current);
 /* Get the number of tabs */
 int tab_count(struct cg_server *server);
 
-/* Find tab by view */
-struct cg_tab *tab_from_view(struct cg_view *view);
-
 #endif
