@@ -104,7 +104,7 @@ create_text_buffer(const char *text, int width, int height, float *bg_color)
 	if (text && strlen(text) > 0) {
 		cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL,
 				      CAIRO_FONT_WEIGHT_NORMAL);
-		cairo_set_font_size(cr, 11);
+		cairo_set_font_size(cr, 13);
 		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0); /* White text */
 
 		/* Truncate text if too long */

@@ -10,9 +10,9 @@ struct cg_server;
 #define TAB_BAR_MAX_TABS 256
 
 /* Tab bar dimensions */
-#define TAB_BAR_HEIGHT 48
-#define TAB_BAR_PADDING 6
-#define TAB_BUTTON_WIDTH 140
+#define TAB_BAR_HEIGHT 32
+#define TAB_BAR_PADDING 4
+#define TAB_BUTTON_WIDTH 160
 #define TAB_BUTTON_GAP 4
 #define TAB_NEW_TAB_BUTTON_WIDTH 80
 
