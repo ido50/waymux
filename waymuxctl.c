@@ -261,6 +261,8 @@ usage(const char *prog_name)
 	fprintf(stderr, "  list-tabs              List all tabs\n");
 	fprintf(stderr, "  focus-tab <NUM>        Switch to tab NUM\n");
 	fprintf(stderr, "  close-tab [--force] <NUM>  Close tab NUM\n");
+	fprintf(stderr, "  background <NUM>       Move tab to background (hide from tab bar)\n");
+	fprintf(stderr, "  foreground <NUM>       Bring background tab to foreground\n");
 	fprintf(stderr, "  new-tab -- <CMD>       Create new tab running CMD\n");
 	fprintf(stderr, "\n");
 }
@@ -351,6 +353,24 @@ main(int argc, char *argv[])
 		} else {
 			snprintf(server_cmd, sizeof(server_cmd), "close-tab %s", argv[cmd_arg_idx]);
 		}
+		return send_command(server_cmd) == 0 ? 0 : 1;
+
+	} else if (strcmp(command, "background") == 0) {
+		if (arg_idx >= argc) {
+			fprintf(stderr, "ERROR: Missing tab index\n");
+			usage(argv[0]);
+			return 1;
+		}
+		snprintf(server_cmd, sizeof(server_cmd), "background %s", argv[arg_idx]);
+		return send_command(server_cmd) == 0 ? 0 : 1;
+
+	} else if (strcmp(command, "foreground") == 0) {
+		if (arg_idx >= argc) {
+			fprintf(stderr, "ERROR: Missing tab index\n");
+			usage(argv[0]);
+			return 1;
+		}
+		snprintf(server_cmd, sizeof(server_cmd), "foreground %s", argv[arg_idx]);
 		return send_command(server_cmd) == 0 ? 0 : 1;
 
 	} else if (strcmp(command, "new-tab") == 0) {
