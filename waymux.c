@@ -249,6 +249,7 @@ usage(FILE *file, const char *waymux)
 		" -d\t Don't draw client side decorations, when possible\n"
 		" -D\t Enable debug logging\n"
 		" -h\t Display this help message\n"
+		" -i <name> Set instance name (default: default)\n"
 		" -L <mod> Set leader modifier for tab shortcuts (default: super)\n"
 		"         Options: super, ctrl, alt, shift\n"
 		" -m extend Extend the display across all connected outputs (default)\n"
@@ -264,7 +265,7 @@ static bool
 parse_args(struct cg_server *server, int argc, char *argv[])
 {
 	int c;
-	while ((c = getopt(argc, argv, "dDhL:m:sv")) != -1) {
+	while ((c = getopt(argc, argv, "dDhi:L:m:sv")) != -1) {
 		switch (c) {
 		case 'd':
 			server->xdg_decoration = true;
@@ -275,6 +276,14 @@ parse_args(struct cg_server *server, int argc, char *argv[])
 		case 'h':
 			usage(stdout, argv[0]);
 			return false;
+		case 'i':
+			free(server->instance_name);
+			server->instance_name = strdup(optarg);
+			if (!server->instance_name) {
+				wlr_log_errno(WLR_ERROR, "Failed to allocate instance name");
+				return false;
+			}
+			break;
 		case 'L':
 			if (strcmp(optarg, "super") == 0) {
 				server->leader_modifier = WLR_MODIFIER_LOGO;
@@ -426,6 +435,13 @@ main(int argc, char *argv[])
 
 	/* Set default leader modifier to Super (Logo) */
 	server.leader_modifier = WLR_MODIFIER_LOGO;
+
+	/* Set default instance name */
+	server.instance_name = strdup("default");
+	if (!server.instance_name) {
+		wlr_log_errno(WLR_ERROR, "Failed to allocate default instance name");
+		return 1;
+	}
 
 #ifdef DEBUG
 	server.log_level = WLR_DEBUG;
@@ -868,6 +884,7 @@ end:
 	/* This function is not null-safe, but we only ever get here
 	   with a proper wl_display. */
 	free(server.wl_display_socket);
+	free(server.instance_name);
 	wl_display_destroy(server.wl_display);
 	wlr_scene_node_destroy(&server.scene->tree.node);
 	wlr_allocator_destroy(server.allocator);

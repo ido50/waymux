@@ -98,6 +98,7 @@ struct cg_server {
 	bool terminated;
 	enum wlr_log_importance log_level;
 	uint32_t leader_modifier; /* Key modifier for tab shortcuts (default: logo/Super) */
+	char *instance_name; /* Instance name for multi-instance support */
 };
 
 void server_terminate(struct cg_server *server);
