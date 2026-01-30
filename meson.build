@@ -42,6 +42,7 @@ wayland_server = dependency('wayland-server')
 xkbcommon      = dependency('xkbcommon')
 math           = cc.find_library('m')
 cairo          = dependency('cairo')
+libtomlc17     = dependency('libtomlc17')
 check          = dependency('check', version: '>=0.15', required: get_option('tests'))
 
 wl_protocol_dir = wayland_protos.get_variable('pkgdatadir')
@@ -121,6 +122,7 @@ waymux = [
   'idle_inhibit_v1.c',
   'launcher.c',
   'output.c',
+  'profile.c',
   'seat.c',
   'tab.c',
   'tab_bar.c',
@@ -137,6 +139,7 @@ waymux_headers = [
   'idle_inhibit_v1.h',
   'launcher.h',
   'output.h',
+  'profile.h',
   'seat.h',
   'server.h',
   'tab.h',
@@ -160,6 +163,7 @@ executable(
     xkbcommon,
     math,
     cairo,
+    libtomlc17,
   ],
   install: true,
 )
