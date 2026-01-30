@@ -185,7 +185,7 @@ render_launcher_ui(struct cg_launcher *launcher, int screen_width, int screen_he
 static void
 launcher_update_render(struct cg_launcher *launcher)
 {
-	if (!launcher->content_buffer || !launcher->is_visible) {
+	if (!launcher->content_buffer || !launcher->is_visible || !launcher->dirty) {
 		return;
 	}
 
@@ -212,6 +212,8 @@ launcher_update_render(struct cg_launcher *launcher)
 			wlr_scene_buffer_set_buffer(launcher->content_buffer, new_buffer);
 			wlr_buffer_drop(new_buffer);
 		}
+
+		launcher->dirty = false;
 
 		break; /* Use first output */
 	}
@@ -437,6 +439,7 @@ launcher_create(struct cg_server *server)
 
 	launcher->server = server;
 	launcher->is_visible = false;
+	launcher->dirty = false;
 	launcher->query[0] = '\0';
 	launcher->query_len = 0;
 	launcher->result_count = 0;
@@ -525,7 +528,8 @@ launcher_update_results(struct cg_launcher *launcher)
 		wlr_log(WLR_DEBUG, "  [%zu] %s", i, launcher->results[i]->name);
 	}
 
-	/* Update rendered UI */
+	/* Mark as dirty for re-rendering */
+	launcher->dirty = true;
 	launcher_update_render(launcher);
 }
 
@@ -540,6 +544,7 @@ launcher_show(struct cg_launcher *launcher)
 	launcher->query[0] = '\0';
 	launcher->query_len = 0;
 	launcher->selected_index = 0;
+	launcher->dirty = true;  /* Mark as dirty to trigger initial render */
 
 	/* Get the first output's dimensions */
 	struct cg_output *output;
@@ -560,12 +565,12 @@ launcher_show(struct cg_launcher *launcher)
 		break; /* Use first output for now */
 	}
 
-	/* Update results and render */
-	launcher_update_results(launcher);
-
 	wlr_scene_node_set_enabled(&launcher->scene_tree->node, true);
 	wlr_scene_node_raise_to_top(&launcher->scene_tree->node);
 	launcher->is_visible = true;
+
+	/* Update results and render (must be after is_visible is set) */
+	launcher_update_results(launcher);
 
 	wlr_log(WLR_DEBUG, "Launcher shown");
 }
@@ -656,6 +661,7 @@ launcher_handle_key(struct cg_launcher *launcher, xkb_keysym_t sym, uint32_t key
 			}
 			wlr_log(WLR_DEBUG, "Selected: %zu/%zu",
 			        launcher->selected_index, launcher->result_count);
+			launcher->dirty = true;
 			launcher_update_render(launcher);
 		}
 		break;
@@ -669,6 +675,7 @@ launcher_handle_key(struct cg_launcher *launcher, xkb_keysym_t sym, uint32_t key
 			}
 			wlr_log(WLR_DEBUG, "Selected: %zu/%zu",
 			        launcher->selected_index, launcher->result_count);
+			launcher->dirty = true;
 			launcher_update_render(launcher);
 		}
 		break;

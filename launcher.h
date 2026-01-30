@@ -17,6 +17,7 @@ struct cg_launcher {
 	struct wlr_scene_rect *background;
 	struct wlr_scene_buffer *content_buffer;  /* Rendered launcher UI */
 	bool is_visible;
+	bool dirty;  /* UI needs re-rendering */
 
 	/* Search state */
 	char query[LAUNCHER_MAX_QUERY];
