@@ -18,6 +18,9 @@
 
 #define CONTROL_BUFFER_SIZE 4096
 
+/* Instance name to connect to (NULL = use default or auto-detect) */
+static const char *target_instance = NULL;
+
 /* Find and connect to waymux control socket
  * Searches XDG_RUNTIME_DIR/waymux directory for .sock files
  * Returns socket fd on success, -1 on failure
@@ -39,48 +42,20 @@ connect_to_waymux(void)
 		return -1;
 	}
 
-	/* Check for WAYMUX_PID environment variable first */
-	const char *waymux_pid = getenv("WAYMUX_PID");
+	/* Check for WAYMUX_INSTANCE environment variable first, then --instance flag */
+	const char *instance_name = getenv("WAYMUX_INSTANCE");
+	if (!instance_name && target_instance) {
+		instance_name = target_instance;
+	}
+	if (!instance_name) {
+		instance_name = "default";
+	}
+
 	char socket_path[PATH_MAX];
-
-	if (waymux_pid) {
-		len = snprintf(socket_path, sizeof(socket_path), "%s/%s.sock", socket_dir, waymux_pid);
-		if (len < 0 || (size_t)len >= sizeof(socket_path)) {
-			fprintf(stderr, "ERROR: Socket path too long\n");
-			return -1;
-		}
-	} else {
-		/* Scan directory for .sock files */
-		DIR *dir = opendir(socket_dir);
-		if (!dir) {
-			fprintf(stderr, "ERROR: No waymux socket directory found at %s\n", socket_dir);
-			return -1;
-		}
-
-		bool found = false;
-		struct dirent *entry;
-
-		while ((entry = readdir(dir)) != NULL) {
-			/* Check if entry ends with .sock */
-			size_t name_len = strlen(entry->d_name);
-			if (name_len > 5 && strcmp(entry->d_name + name_len - 5, ".sock") == 0) {
-				len = snprintf(socket_path, sizeof(socket_path), "%s/%s", socket_dir, entry->d_name);
-				if (len < 0 || (size_t)len >= sizeof(socket_path)) {
-					closedir(dir);
-					fprintf(stderr, "ERROR: Socket path too long\n");
-					return -1;
-				}
-				found = true;
-				break;
-			}
-		}
-
-		closedir(dir);
-
-		if (!found) {
-			fprintf(stderr, "ERROR: No waymux socket found in %s\n", socket_dir);
-			return -1;
-		}
+	len = snprintf(socket_path, sizeof(socket_path), "%s/%s.sock", socket_dir, instance_name);
+	if (len < 0 || (size_t)len >= sizeof(socket_path)) {
+		fprintf(stderr, "ERROR: Socket path too long\n");
+		return -1;
 	}
 
 	/* Create socket */
@@ -171,7 +146,9 @@ send_command(const char *command)
 static void
 usage(const char *prog_name)
 {
-	fprintf(stderr, "Usage: %s <command> [args]\n", prog_name);
+	fprintf(stderr, "Usage: %s [OPTIONS] <command> [args]\n", prog_name);
+	fprintf(stderr, "\nOptions:\n");
+	fprintf(stderr, "  -i, --instance <NAME>  Target specific instance (default: 'default')\n");
 	fprintf(stderr, "\nCommands:\n");
 	fprintf(stderr, "  list-tabs              List all tabs\n");
 	fprintf(stderr, "  focus-tab <NUM>        Switch to tab NUM\n");
@@ -188,7 +165,37 @@ main(int argc, char *argv[])
 		return 1;
 	}
 
-	const char *command = argv[1];
+	/* Parse options */
+	int arg_idx = 1;
+	while (arg_idx < argc && argv[arg_idx][0] == '-') {
+		if (strcmp(argv[arg_idx], "-i") == 0 || strcmp(argv[arg_idx], "--instance") == 0) {
+			if (arg_idx + 1 >= argc) {
+				fprintf(stderr, "ERROR: %s requires an argument\n", argv[arg_idx]);
+				usage(argv[0]);
+				return 1;
+			}
+			target_instance = argv[arg_idx + 1];
+			arg_idx += 2;
+		} else if (strcmp(argv[arg_idx], "--") == 0) {
+			/* Stop option processing */
+			arg_idx++;
+			break;
+		} else if (strcmp(argv[arg_idx], "-h") == 0 || strcmp(argv[arg_idx], "--help") == 0) {
+			usage(argv[0]);
+			return 0;
+		} else {
+			fprintf(stderr, "ERROR: Unknown option '%s'\n", argv[arg_idx]);
+			usage(argv[0]);
+			return 1;
+		}
+	}
+
+	if (arg_idx >= argc) {
+		usage(argv[0]);
+		return 1;
+	}
+
+	const char *command = argv[arg_idx++];
 
 	/* Build command string for server */
 	char server_cmd[CONTROL_BUFFER_SIZE];
@@ -198,53 +205,53 @@ main(int argc, char *argv[])
 		return send_command(server_cmd) == 0 ? 0 : 1;
 
 	} else if (strcmp(command, "focus-tab") == 0) {
-		if (argc < 3) {
+		if (arg_idx >= argc) {
 			fprintf(stderr, "ERROR: Missing tab index\n");
 			usage(argv[0]);
 			return 1;
 		}
-		snprintf(server_cmd, sizeof(server_cmd), "focus-tab %s", argv[2]);
+		snprintf(server_cmd, sizeof(server_cmd), "focus-tab %s", argv[arg_idx]);
 		return send_command(server_cmd) == 0 ? 0 : 1;
 
 	} else if (strcmp(command, "close-tab") == 0) {
-		if (argc < 3) {
-			fprintf(stderr, "ERROR: Missing tab index\n");
-			usage(argv[0]);
-			return 1;
-		}
-
-		int arg_idx = 2;
-		bool force = false;
-
-		/* Check for --force flag */
-		if (strcmp(argv[arg_idx], "--force") == 0) {
-			force = true;
-			arg_idx++;
-		}
-
 		if (arg_idx >= argc) {
 			fprintf(stderr, "ERROR: Missing tab index\n");
 			usage(argv[0]);
 			return 1;
 		}
 
+		int cmd_arg_idx = arg_idx;
+		bool force = false;
+
+		/* Check for --force flag */
+		if (cmd_arg_idx < argc && strcmp(argv[cmd_arg_idx], "--force") == 0) {
+			force = true;
+			cmd_arg_idx++;
+		}
+
+		if (cmd_arg_idx >= argc) {
+			fprintf(stderr, "ERROR: Missing tab index\n");
+			usage(argv[0]);
+			return 1;
+		}
+
 		if (force) {
-			snprintf(server_cmd, sizeof(server_cmd), "close-tab --force %s", argv[arg_idx]);
+			snprintf(server_cmd, sizeof(server_cmd), "close-tab --force %s", argv[cmd_arg_idx]);
 		} else {
-			snprintf(server_cmd, sizeof(server_cmd), "close-tab %s", argv[arg_idx]);
+			snprintf(server_cmd, sizeof(server_cmd), "close-tab %s", argv[cmd_arg_idx]);
 		}
 		return send_command(server_cmd) == 0 ? 0 : 1;
 
 	} else if (strcmp(command, "new-tab") == 0) {
-		if (argc < 4 || strcmp(argv[2], "--") != 0) {
+		if (arg_idx >= argc || strcmp(argv[arg_idx], "--") != 0) {
 			fprintf(stderr, "ERROR: new-tab requires -- separator\n");
 			fprintf(stderr, "Usage: %s new-tab -- <command> [args...]\n", argv[0]);
 			return 1;
 		}
 
-		/* Build command string from argv[3+] */
+		/* Build command string from argv[arg_idx+1+] */
 		size_t offset = snprintf(server_cmd, sizeof(server_cmd), "new-tab --");
-		for (int i = 3; i < argc && offset < sizeof(server_cmd) - 2; i++) {
+		for (int i = arg_idx + 1; i < argc && offset < sizeof(server_cmd) - 2; i++) {
 			offset += snprintf(server_cmd + offset, sizeof(server_cmd) - offset, " %s", argv[i]);
 		}
 

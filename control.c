@@ -453,8 +453,8 @@ control_server_create(struct cg_server *server)
 	control->server = server;
 	wl_list_init(&control->clients);
 
-	/* Get PID for socket path */
-	pid_t pid = getpid();
+	/* Get instance name for socket path */
+	const char *instance_name = server->instance_name ? server->instance_name : "default";
 
 	/* Create socket directory */
 	const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
@@ -473,7 +473,7 @@ control_server_create(struct cg_server *server)
 		return NULL;
 	}
 
-	/* Create socket path */
+	/* Create socket path using instance name */
 	control->socket_path = calloc(PATH_MAX, sizeof(char));
 	if (!control->socket_path) {
 		wlr_log_errno(WLR_ERROR, "Failed to allocate socket path");
@@ -481,7 +481,7 @@ control_server_create(struct cg_server *server)
 		free(control);
 		return NULL;
 	}
-	snprintf(control->socket_path, PATH_MAX, "%s/waymux/%d.sock", runtime_dir, pid);
+	snprintf(control->socket_path, PATH_MAX, "%s/waymux/%s.sock", runtime_dir, instance_name);
 
 	/* Remove existing socket if present */
 	unlink(control->socket_path);
