@@ -156,23 +156,38 @@ view_unmap(struct cg_view *view)
 	/* Find and destroy the associated tab */
 	struct cg_tab *tab = tab_from_view(view);
 	if (tab) {
+		/* Check if this was the active tab */
+		bool was_active = (view->server->active_tab == tab);
+
 		/* Clear the view pointer to prevent accessing freed memory */
 		tab->view = NULL;
 
-		/* Update tab bar to remove the closed tab */
-		if (view->server->tab_bar) {
-			tab_bar_update(view->server->tab_bar);
-		}
-
 		/* Destroy the tab (without closing the view again) */
 		wl_list_remove(&tab->link);
-		if (view->server->active_tab == tab) {
+		if (was_active) {
 			view->server->active_tab = NULL;
 		}
 		if (tab->scene_tree) {
 			wlr_scene_node_destroy(&tab->scene_tree->node);
 		}
 		free(tab);
+
+		/* If we closed the active tab, activate the previous one (or next) */
+		if (was_active) {
+			struct cg_tab *next_tab = NULL;
+			/* Try to get the previous tab */
+			if (!wl_list_empty(&view->server->tabs)) {
+				next_tab = wl_container_of(view->server->tabs.prev, next_tab, link);
+			}
+			if (next_tab) {
+				tab_activate(next_tab);
+			}
+		}
+
+		/* Update tab bar to reflect the change */
+		if (view->server->tab_bar) {
+			tab_bar_update(view->server->tab_bar);
+		}
 	}
 }
 
