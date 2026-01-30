@@ -58,6 +58,7 @@
 #include "idle_inhibit_v1.h"
 #include "launcher.h"
 #include "output.h"
+#include "profile.h"
 #include "seat.h"
 #include "server.h"
 #include "tab_bar.h"
@@ -308,6 +309,108 @@ parse_args(struct cg_server *server, int argc, char *argv[])
 		}
 	}
 
+	return true;
+}
+
+static bool
+spawn_profile_tab(struct cg_server *server, struct profile *profile, struct profile_tab *tab)
+{
+	pid_t pid = fork();
+	if (pid == 0) {
+		/* Child process */
+		sigset_t set;
+		sigemptyset(&set);
+		sigprocmask(SIG_SETMASK, &set, NULL);
+
+		/* Set working directory if specified */
+		if (profile->working_dir && chdir(profile->working_dir) != 0) {
+			wlr_log_errno(WLR_ERROR, "Failed to change to working directory: %s",
+				     profile->working_dir);
+			_exit(1);
+		}
+
+		/* Set environment variables from profile */
+		for (int i = 0; i < profile->env_count; i++) {
+			if (setenv(profile->env_vars[i].key, profile->env_vars[i].value, 1) != 0) {
+				wlr_log_errno(WLR_ERROR, "Failed to set environment variable: %s",
+					     profile->env_vars[i].key);
+			}
+		}
+
+		/* Build command arguments */
+		char **argv;
+		int argc = 0;
+
+		/* Count total arguments: proxy_command (1) + tab command (1) + tab args + NULL */
+		int proxy_args = profile->proxy_command ? 1 : 0;
+		argv = calloc(proxy_args + 1 + tab->argc + 1, sizeof(char *));
+		if (!argv) {
+			wlr_log_errno(WLR_ERROR, "Failed to allocate argument array");
+			_exit(1);
+		}
+
+		/* Add proxy command if specified */
+		if (profile->proxy_command) {
+			argv[argc++] = profile->proxy_command;
+		}
+
+		/* Add tab command */
+		argv[argc++] = tab->command;
+
+		/* Add tab arguments */
+		for (int i = 0; i < tab->argc; i++) {
+			argv[argc++] = tab->args[i];
+		}
+
+		argv[argc] = NULL;
+
+		wlr_log(WLR_INFO, "Spawning profile tab: %s", tab->command);
+		execvp(argv[0], argv);
+
+		/* execvp() returns only on failure */
+		wlr_log_errno(WLR_ERROR, "Failed to spawn profile tab: %s", tab->command);
+		free(argv);
+		_exit(1);
+	} else if (pid == -1) {
+		wlr_log_errno(WLR_ERROR, "Unable to fork for profile tab");
+		return false;
+	}
+
+	wlr_log(WLR_DEBUG, "Profile tab spawned with pid %d", pid);
+	return true;
+}
+
+static bool
+spawn_profile_tabs(struct cg_server *server, const char *profile_name)
+{
+	struct profile *profile = profile_load(profile_name);
+	if (!profile) {
+		wlr_log(WLR_ERROR, "Failed to load profile: %s", profile_name);
+		return false;
+	}
+
+	wlr_log(WLR_INFO, "Loaded profile '%s' with %d tabs", profile->name, profile->tab_count);
+
+	if (profile->working_dir) {
+		wlr_log(WLR_DEBUG, "Profile working directory: %s", profile->working_dir);
+	}
+	if (profile->proxy_command) {
+		wlr_log(WLR_DEBUG, "Profile proxy command: %s", profile->proxy_command);
+	}
+	if (profile->env_count > 0) {
+		wlr_log(WLR_DEBUG, "Profile environment variables: %d", profile->env_count);
+	}
+
+	/* Spawn each tab in the profile */
+	for (int i = 0; i < profile->tab_count; i++) {
+		struct profile_tab *tab = &profile->tabs[i];
+		if (!spawn_profile_tab(server, profile, tab)) {
+			wlr_log(WLR_ERROR, "Failed to spawn tab %d (%s)", i, tab->command);
+			/* Continue trying to spawn other tabs */
+		}
+	}
+
+	profile_free(profile);
 	return true;
 }
 
@@ -697,6 +800,21 @@ main(int argc, char *argv[])
 	}
 #endif
 
+	/* Check if the first argument is a profile name (not starting with '-') */
+	if (optind < argc && argv[optind][0] != '-' && strcmp(argv[optind], "--") != 0) {
+		const char *profile_name = argv[optind];
+		wlr_log(WLR_INFO, "Loading profile: %s", profile_name);
+
+		if (!spawn_profile_tabs(&server, profile_name)) {
+			wlr_log(WLR_ERROR, "Failed to spawn profile tabs");
+			ret = 1;
+			goto end;
+		}
+
+		optind++; /* Skip profile name */
+	}
+
+	/* Check if there's a primary client to spawn (after profile and/or --) */
 	if (optind < argc && !spawn_primary_client(&server, argv + optind, &pid, &sigchld_source)) {
 		ret = 1;
 		goto end;
