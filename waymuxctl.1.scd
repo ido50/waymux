@@ -6,7 +6,14 @@ waymuxctl - control client for WayMux
 
 # SYNOPSIS
 
-*waymuxctl* _command_ [_arguments_...]
+*waymuxctl* [_options_] _command_ [_arguments_...]
+
+# OPTIONS
+
+*-i*, *--instance* _NAME_
+	Target a specific WayMux instance by name. If not specified, the
+	*WAYMUX_INSTANCE* environment variable is used. If neither is set,
+	the default instance is targeted.
 
 # DESCRIPTION
 
@@ -16,14 +23,15 @@ from other terminals or scripts.
 
 waymuxctl automatically connects to the WayMux control socket by searching in
 the *XDG_RUNTIME_DIR*/waymux directory. If multiple WayMux instances are
-running, you can specify which one to control using the *WAYMUX_PID* environment
-variable.
+running, you can specify which one to control using the *-i* option or the
+*WAYMUX_INSTANCE* environment variable.
 
 # COMMANDS
 
 *list-tabs*
 	List all open tabs, showing their index and the application running in
-	each tab.
+	each tab. Background tabs (hidden from the tab bar) are marked with
+	*[H]*.
 
 *focus-tab* _NUM_
 	Switch to tab _NUM_, where _NUM_ is the tab index as shown by
@@ -33,6 +41,15 @@ variable.
 	Close tab _NUM_. If the tab has a running application, WayMux will ask
 	for confirmation before closing. Use *--force* to close the tab without
 	confirmation.
+
+*background* _NUM_
+	Move tab _NUM_ to the background. Background tabs are hidden from the
+	tab bar but continue running. They can be brought back to the foreground
+	using the *foreground* command or the background tabs dialog (Super+Shift+B).
+
+*foreground* _NUM_
+	Bring tab _NUM_ from the background to the foreground and activate it.
+	The tab will become visible in the tab bar and be switched to.
 
 *new-tab* -- _CMD_ [_args..._]
 	Create a new tab and run _CMD_ in it. The *--* separator is required
@@ -80,18 +97,31 @@ $ waymuxctl new-tab -- foot
 $ waymuxctl new-tab -- emacs README.md
 ```
 
+*Move a tab to the background*
+
+```
+$ waymuxctl background 1
+```
+
+*Bring a background tab to the foreground*
+
+```
+$ waymuxctl foreground 1
+```
+
 *Control a specific WayMux instance*
 
 ```
-$ WAYMUX_PID=1234 waymuxctl list-tabs
+$ waymuxctl -i work list-tabs
 ```
 
 # ENVIRONMENT
 
-_WAYMUX_PID_
-	Specify the PID of the WayMux instance to control. The control socket
-	is located at *XDG_RUNTIME_DIR*/waymux/$WAYMUX_PID.sock. If not set,
-	waymuxctl will use the first .sock file it finds in the socket directory.
+_WAYMUX_INSTANCE_
+	Specify the name of the WayMux instance to control. The control socket
+	is located at *XDG_RUNTIME_DIR*/waymux/$WAYMUX_INSTANCE.sock. If not
+	set, the *-i* option is used. If neither is set, the default instance
+	is targeted.
 
 _XDG_RUNTIME_DIR_
 	Path to the runtime directory containing the WayMux control socket

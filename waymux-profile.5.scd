@@ -66,6 +66,12 @@ the following fields:
 	An array of command-line arguments to pass to the application. Arguments
 	are passed directly to the application without shell interpretation.
 
+*background* = _boolean_ (optional)
+	If set to *true*, the tab will be created as a background tab. Background
+	tabs are hidden from the tab bar but continue running. They can be
+	accessed via the background tabs dialog (Super+Shift+B) or via
+	*waymuxctl foreground*. The default is *false*.
+
 # EXAMPLES
 
 ## Basic Profile
@@ -167,6 +173,28 @@ args = ["-c", "cd /tmp && ls -la"]
 command = "bash"
 args = ["-c", "echo 'Hello from WayMux' && sleep 10"]
 ```
+
+## Background Tabs
+
+Create a profile with some tabs hidden from the tab bar:
+
+```
+[[tabs]]
+command = "kitty"
+title = "Main Terminal"
+
+[[tabs]]
+command = "kitty"
+title = "Background Tasks"
+background = true
+
+[[tabs]]
+command = "firefox"
+title = "Browser"
+```
+
+Background tabs run but are not shown in the tab bar. Access them via the
+background tabs dialog (Super+Shift+B) or *waymuxctl foreground*.
 
 # BEHAVIOR
 

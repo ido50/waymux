@@ -87,6 +87,17 @@ commands:
 	ask for confirmation before closing. Use *waymuxctl close-tab --force*
 	to close without confirmation.
 
+*Super+B*
+	Toggle the current tab as a background tab. Background tabs are hidden
+	from the tab bar but remain running. They can be accessed via the
+	background tabs dialog (Super+Shift+B) or via *waymuxctl*.
+
+*Super+Shift+B*
+	Show the background tabs dialog. The dialog displays all background tabs
+	(hot tabs hidden from the tab bar). Type to filter, use arrow keys to
+	navigate, press Enter to bring the selected tab to the foreground and
+	activate it, or press Escape to cancel.
+
 *Super+N*
 	Show the application launcher. The launcher displays available applications
 	from your XDG desktop entries. Type to filter, use arrow keys to navigate,
