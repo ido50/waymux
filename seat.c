@@ -352,6 +352,27 @@ handle_tab_keybinding(struct cg_server *server, xkb_keysym_t sym)
 		return true;
 	}
 
+	/* Super+b: toggle current tab background status */
+	if (sym == XKB_KEY_b) {
+		if (server->active_tab) {
+			struct cg_tab *current = server->active_tab;
+			bool new_background = !current->is_background;
+			tab_set_background(current, new_background);
+
+			/* If tab became background, switch to next non-background tab */
+			if (new_background) {
+				struct cg_tab *next_tab = tab_next(current);
+				if (next_tab && next_tab != current) {
+					tab_activate(next_tab);
+				}
+			} else {
+				/* Tab became foreground, activate it */
+				tab_activate(current);
+			}
+			return true;
+		}
+	}
+
 	return false;
 }
 
