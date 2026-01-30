@@ -96,6 +96,7 @@ if scdoc.found()
   man_files = [
     'waymux.1.scd',
     'waymuxctl.1.scd',
+    'waymux-profile.5.scd',
   ]
   foreach filename : man_files
     topic = filename.split('.')[-3].split('/')[-1]
