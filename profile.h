@@ -17,6 +17,7 @@ struct profile_tab {
 	char *title;
 	char **args;  /* NULL-terminated array */
 	int argc;
+	bool background;  /* If true, tab starts as background (hidden from tab bar) */
 };
 
 /* Environment variable in a profile */

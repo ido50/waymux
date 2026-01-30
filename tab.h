@@ -16,6 +16,7 @@ struct cg_tab {
 
 	/* Tab state */
 	bool is_visible;
+	bool is_background;  /* If true, tab is hidden from tab bar */
 
 	/* Scene node for controlling visibility */
 	struct wlr_scene_tree *scene_tree;

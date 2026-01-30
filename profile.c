@@ -278,6 +278,14 @@ profile_load(const char *name)
 			if (args.type == TOML_ARRAY) {
 				tab->args = dup_string_array(&args, &tab->argc);
 			}
+
+			/* background is optional (defaults to false) */
+			toml_datum_t background = toml_get(*tab_datum, "background");
+			if (background.type == TOML_BOOLEAN) {
+				tab->background = background.u.boolean;
+			} else {
+				tab->background = false;
+			}
 		}
 	} else {
 		wlr_log(WLR_INFO, "Profile has no tabs defined");
