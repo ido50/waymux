@@ -48,6 +48,18 @@ See *waymux-profile*(5) for details on the profile file format.
 *-h*
 	Show the help message.
 
+*-i* <name>
+	Set the instance name. Multiple WayMux instances can run simultaneously,
+	each with a unique name. The default instance name is *default*.
+	See *waymuxctl*(1) for information on controlling specific instances.
+
+*-L* <mod>
+	Set the leader modifier for tab shortcuts. Supported options are:
+	*super* Use the Super (Windows/Logo) key (default).
+	*ctrl* Use the Control key.
+	*alt* Use the Alt key.
+	*shift* Use the Shift key.
+
 *-m* <mode>
 	Set the multi-monitor behavior. Supported modes are:
 	*last* WayMux uses only the last connected monitor.
@@ -133,6 +145,19 @@ $ waymux -D foot
 
 ```
 $ waymux -d foot
+```
+
+*Start a named WayMux instance*
+
+```
+$ waymux -i work dev
+```
+
+*Start multiple WayMux instances simultaneously*
+
+```
+$ waymux -i work dev &
+$ waymux -i personal foot &
 ```
 
 For controlling WayMux from other terminals or scripts, see *waymuxctl*(1).
