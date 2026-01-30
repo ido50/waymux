@@ -35,7 +35,7 @@ view_get_title(struct cg_view *view)
 	if (!title) {
 		return NULL;
 	}
-	return strndup(title, strlen(title));
+	return strdup(title);
 }
 
 char *
@@ -48,7 +48,7 @@ view_get_app_id(struct cg_view *view)
 	if (!app_id) {
 		return NULL;
 	}
-	return strndup(app_id, strlen(app_id));
+	return strdup(app_id);
 }
 
 bool
