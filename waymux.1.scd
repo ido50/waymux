@@ -6,7 +6,7 @@ waymux - a Wayland multiplexer compositor
 
 # SYNOPSIS
 
-*waymux* [options...] [--] [_application_...]
+*waymux* [options...] [_profile_] [--] [_application_...]
 
 # DESCRIPTION
 
@@ -22,6 +22,20 @@ creating dedicated workspaces.
 
 Each tab runs its own application independently, preventing applications from
 interacting with each other or with activities outside their tab.
+
+# PROFILES
+
+WayMux can be started with a profile: a TOML configuration file that defines
+multiple applications to launch, shared environment variables, working directory,
+and other settings.
+
+Profiles are loaded by name (e.g., *dev* for *dev.toml*). WayMux searches for
+profile files in:
+- The current directory (e.g., *./dev.toml*)
+- *$XDG_CONFIG_HOME/waymux/profiles.d/* (or *~/.config/waymux/profiles.d/* if
+  *$XDG_CONFIG_HOME* is not set)
+
+See *waymux-profile*(5) for details on the profile file format.
 
 # OPTIONS
 
@@ -91,6 +105,18 @@ $ waymux foot
 $ waymux foot -- emacs
 ```
 
+*Start WayMux with a profile*
+
+```
+$ waymux dev
+```
+
+*Start WayMux with a profile and an additional application*
+
+```
+$ waymux dev -- foot
+```
+
 *Start WayMux on the last connected monitor only*
 
 ```
@@ -110,6 +136,7 @@ $ waymux -d foot
 ```
 
 For controlling WayMux from other terminals or scripts, see *waymuxctl*(1).
+For information on writing profile files, see *waymux-profile*(5).
 
 # ENVIRONMENT
 
@@ -135,7 +162,7 @@ _XKB_DEFAULT_VARIANT_, _XKB_DEFAULT_OPTIONS_
 
 # SEE ALSO
 
-*waymuxctl*(1), *xkeyboard-config*(7)
+*waymuxctl*(1), *waymux-profile*(5), *xkeyboard-config*(7)
 
 # BUGS
 
