@@ -68,6 +68,44 @@ setup(void)
 }
 
 static void
+setup_background(void)
+{
+	/* Save current working directory */
+	char cwd[PATH_MAX];
+	ck_assert_ptr_nonnull(getcwd(cwd, sizeof(cwd)));
+	saved_cwd = strdup(cwd);
+	ck_assert_ptr_nonnull(saved_cwd);
+
+	/* Change to the source directory where we can create the test file */
+	ck_assert_int_eq(chdir(".."), 0);
+
+	/* Create a test profile with background tabs */
+	test_profile_name = strdup("waymux_test_profile_bg");
+	test_profile_path = strdup("./waymux_test_profile_bg.toml");
+	ck_assert_ptr_nonnull(test_profile_name);
+	ck_assert_ptr_nonnull(test_profile_path);
+
+	FILE *f = fopen(test_profile_path, "w");
+	ck_assert_ptr_nonnull(f);
+
+	fprintf(f, "[[tabs]]\n");
+	fprintf(f, "command = \"kitty\"\n");
+	fprintf(f, "title = \"Foreground Tab\"\n");
+	fprintf(f, "\n");
+	fprintf(f, "[[tabs]]\n");
+	fprintf(f, "command = \"foot\"\n");
+	fprintf(f, "title = \"Background Tab\"\n");
+	fprintf(f, "background = true\n");
+	fprintf(f, "\n");
+	fprintf(f, "[[tabs]]\n");
+	fprintf(f, "command = \"firefox\"\n");
+	fprintf(f, "title = \"Another Foreground Tab\"\n");
+	fprintf(f, "background = false\n");
+
+	fclose(f);
+}
+
+static void
 teardown(void)
 {
 	if (test_profile_path) {
@@ -146,6 +184,32 @@ START_TEST(test_profile_tabs)
 }
 END_TEST
 
+START_TEST(test_profile_background_tabs)
+{
+	struct profile *profile = profile_load(test_profile_name);
+	ck_assert_ptr_nonnull(profile);
+
+	ck_assert_int_eq(profile->tab_count, 3);
+
+	/* First tab - no background field (defaults to false) */
+	ck_assert_str_eq(profile->tabs[0].command, "kitty");
+	ck_assert_str_eq(profile->tabs[0].title, "Foreground Tab");
+	ck_assert_int_eq(profile->tabs[0].background, false);
+
+	/* Second tab - background = true */
+	ck_assert_str_eq(profile->tabs[1].command, "foot");
+	ck_assert_str_eq(profile->tabs[1].title, "Background Tab");
+	ck_assert_int_eq(profile->tabs[1].background, true);
+
+	/* Third tab - background = false (explicit) */
+	ck_assert_str_eq(profile->tabs[2].command, "firefox");
+	ck_assert_str_eq(profile->tabs[2].title, "Another Foreground Tab");
+	ck_assert_int_eq(profile->tabs[2].background, false);
+
+	profile_free(profile);
+}
+END_TEST
+
 START_TEST(test_profile_file_not_found)
 {
 	struct profile *profile = profile_load("nonexistent_profile_xyz");
@@ -174,6 +238,11 @@ profile_suite(void)
 	tcase_add_test(tc_core, test_profile_env_vars);
 	tcase_add_test(tc_core, test_profile_tabs);
 	suite_add_tcase(s, tc_core);
+
+	TCase *tc_background = tcase_create("Background");
+	tcase_add_checked_fixture(tc_background, setup_background, teardown);
+	tcase_add_test(tc_background, test_profile_background_tabs);
+	suite_add_tcase(s, tc_background);
 
 	TCase *tc_errors = tcase_create("Errors");
 	tcase_add_test(tc_errors, test_profile_file_not_found);
