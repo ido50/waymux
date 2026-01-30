@@ -25,10 +25,16 @@ extension (e.g., *dev.toml*, *work.toml*).
 	profile. If not specified, applications inherit WayMux's working
 	directory.
 
-*proxy_command* = _command_
+*proxy_command* = [_command_, _arg_, ...] or _command_
 	A command prefix that is prepended to all application commands. This is
-	useful for running applications through a wrapper or launcher (e.g., *"uv
-	run"*, *"distrobox enter -- "*).
+	useful for running applications through a wrapper or launcher.
+
+	Can be specified as a string for simple commands (e.g., *"sudo"*) or as
+	an array for multi-word commands (e.g., *["uv", "run"]*,
+	*["distrobox", "enter", "--"]*).
+
+	When specified as an array, each element becomes a separate argument in
+	the command execution.
 
 ## The [env] Section
 
@@ -116,10 +122,10 @@ args = ["--new-window", "https://docs.rs"]
 
 ## Using a Proxy Command
 
-Run applications through a tool runner:
+Run applications through a tool runner (array format for multi-word commands):
 
 ```
-proxy_command = "uv run"
+proxy_command = ["uv", "run"]
 
 working_dir = "/home/user/projects/myproject"
 
@@ -135,6 +141,17 @@ args = ["-m", "myapp.main"]
 command = "python"
 title = "Tests"
 args = ["-m", "pytest"]
+```
+
+The proxy command can also be a simple string for single-word commands:
+
+```
+proxy_command = "sudo"
+
+[[tabs]]
+command = "vim"
+title = "Editor"
+args = ["/etc/config"]
 ```
 
 ## Shell Commands

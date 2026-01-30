@@ -44,7 +44,7 @@ setup(void)
 	ck_assert_ptr_nonnull(f);
 
 	fprintf(f, "working_dir = \"/home/user/projects\"\n");
-	fprintf(f, "proxy_command = \"uv run\"\n");
+	fprintf(f, "proxy_command = [\"uv\", \"run\"]\n");
 	fprintf(f, "\n");
 	fprintf(f, "[env]\n");
 	fprintf(f, "EDITOR = \"nvim\"\n");
@@ -94,7 +94,9 @@ START_TEST(test_profile_load_valid)
 
 	ck_assert_str_eq(profile->name, test_profile_name);
 	ck_assert_str_eq(profile->working_dir, "/home/user/projects");
-	ck_assert_str_eq(profile->proxy_command, "uv run");
+	ck_assert_int_eq(profile->proxy_argc, 2);
+	ck_assert_str_eq(profile->proxy_command[0], "uv");
+	ck_assert_str_eq(profile->proxy_command[1], "run");
 
 	profile_free(profile);
 }

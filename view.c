@@ -153,17 +153,18 @@ view_unmap(struct cg_view *view)
 	view->wlr_surface->data = NULL;
 	view->wlr_surface = NULL;
 
-	/* Find and destroy the associated tab */
-	struct cg_tab *tab = tab_from_view(view);
+	/* Clean up the associated tab using the direct pointer */
+	struct cg_tab *tab = view->tab;
 	if (tab) {
 		/* Check if this was the active tab */
 		bool was_active = (view->server->active_tab == tab);
-
-		/* Clear the view pointer to prevent accessing freed memory */
-		tab->view = NULL;
+		bool already_removed = (tab->view == NULL); /* Tab was already destroyed via tab_destroy */
 
 		/* Destroy the tab (without closing the view again) */
-		wl_list_remove(&tab->link);
+		if (!already_removed) {
+			/* Tab is still in the list, remove it */
+			wl_list_remove(&tab->link);
+		}
 		if (was_active) {
 			view->server->active_tab = NULL;
 		}
@@ -189,6 +190,9 @@ view_unmap(struct cg_view *view)
 			tab_bar_update(view->server->tab_bar);
 		}
 	}
+
+	/* Clear the view's tab pointer */
+	view->tab = NULL;
 }
 
 void
@@ -228,6 +232,7 @@ view_map(struct cg_view *view, struct wlr_surface *surface)
 
 	view->wlr_surface = surface;
 	surface->data = view;
+	view->tab = tab;
 
 #if WAYMUX_HAS_XWAYLAND
 	/* We shouldn't position override-redirect windows. They set

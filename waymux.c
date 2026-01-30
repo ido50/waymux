@@ -341,17 +341,16 @@ spawn_profile_tab(struct cg_server *server, struct profile *profile, struct prof
 		char **argv;
 		int argc = 0;
 
-		/* Count total arguments: proxy_command (1) + tab command (1) + tab args + NULL */
-		int proxy_args = profile->proxy_command ? 1 : 0;
-		argv = calloc(proxy_args + 1 + tab->argc + 1, sizeof(char *));
+		/* Count total arguments: proxy_command args + tab command (1) + tab args + NULL */
+		argv = calloc(profile->proxy_argc + 1 + tab->argc + 1, sizeof(char *));
 		if (!argv) {
 			wlr_log_errno(WLR_ERROR, "Failed to allocate argument array");
 			_exit(1);
 		}
 
-		/* Add proxy command if specified */
-		if (profile->proxy_command) {
-			argv[argc++] = profile->proxy_command;
+		/* Add proxy command arguments if specified */
+		for (int i = 0; i < profile->proxy_argc; i++) {
+			argv[argc++] = profile->proxy_command[i];
 		}
 
 		/* Add tab command */
@@ -395,7 +394,10 @@ spawn_profile_tabs(struct cg_server *server, const char *profile_name)
 		wlr_log(WLR_DEBUG, "Profile working directory: %s", profile->working_dir);
 	}
 	if (profile->proxy_command) {
-		wlr_log(WLR_DEBUG, "Profile proxy command: %s", profile->proxy_command);
+		/* Log the proxy command arguments */
+		for (int i = 0; i < profile->proxy_argc; i++) {
+			wlr_log(WLR_DEBUG, "Profile proxy command arg %d: %s", i, profile->proxy_command[i]);
+		}
 	}
 	if (profile->env_count > 0) {
 		wlr_log(WLR_DEBUG, "Profile environment variables: %d", profile->env_count);

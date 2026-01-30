@@ -33,6 +33,9 @@ struct cg_view {
 	enum cg_view_type type;
 	const struct cg_view_impl *impl;
 
+	/* Direct pointer to the associated tab (owned by the tab) */
+	struct cg_tab *tab;
+
 	struct wlr_foreign_toplevel_handle_v1 *foreign_toplevel_handle;
 	struct wl_listener request_activate;
 	struct wl_listener request_close;

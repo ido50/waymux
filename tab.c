@@ -75,18 +75,25 @@ tab_destroy(struct cg_tab *tab)
 		server->active_tab = NULL;
 	}
 
-	/* Close the view */
+	/* Remove from list BEFORE closing view to prevent tab_from_view from finding it */
+	wl_list_remove(&tab->link);
+
+	/* Close the view and clear its reference to this tab.
+	 * The tab will be freed later by view_unmap. */
 	if (tab->view) {
-		tab->view->impl->close(tab->view);
+		struct cg_view *view = tab->view;
+		tab->view = NULL;
+		view->impl->close(view);
+		/* Don't free the tab here - view_unmap will do it via view->tab pointer.
+		 * Also don't destroy scene_tree here - view_unmap will handle it. */
+		wlr_log(WLR_DEBUG, "Destroyed tab (view cleanup deferred)");
+		return;
 	}
 
-	/* Destroy scene tree */
+	/* No view attached, so we can free everything now */
 	if (tab->scene_tree) {
 		wlr_scene_node_destroy(&tab->scene_tree->node);
 	}
-
-	/* Remove from list */
-	wl_list_remove(&tab->link);
 
 	wlr_log(WLR_DEBUG, "Destroyed tab");
 	free(tab);

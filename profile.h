@@ -29,7 +29,8 @@ struct profile_env {
 struct profile {
 	char *name;
 	char *working_dir;
-	char *proxy_command;
+	char **proxy_command; /* NULL-terminated array of proxy command arguments */
+	int proxy_argc;
 	struct profile_env *env_vars;
 	int env_count;
 	struct profile_tab *tabs;

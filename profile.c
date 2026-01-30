@@ -52,15 +52,15 @@ find_profile_file(const char *name)
 			return NULL;
 		}
 		/* Allocate enough space for ~/.config/waymux/profiles.d/name.toml */
-		len = strlen(home) + strlen(name) + 32;
+		len = strlen(home) + strlen(name) + 33;
 		path = malloc(len);
 		if (!path) {
 			wlr_log_errno(WLR_ERROR, "Failed to allocate path");
 			return NULL;
 		}
-		snprintf(path, len, "%s/.config/waymux/profiles.d/%s.toml", home, name);
+	snprintf(path, len, "%s/.config/waymux/profiles.d/%s.toml", home, name);
 	} else {
-		len = strlen(config_home) + strlen(name) + 24;
+		len = strlen(config_home) + strlen(name) + 25;
 		path = malloc(len);
 		if (!path) {
 			wlr_log_errno(WLR_ERROR, "Failed to allocate path");
@@ -190,10 +190,29 @@ profile_load(const char *name)
 		profile->working_dir = dup_string(wd.u.s);
 	}
 
-	/* Parse proxy_command (optional) */
+	/* Parse proxy_command (optional) - can be a string or an array */
 	toml_datum_t pc = toml_get(root, "proxy_command");
 	if (pc.type == TOML_STRING) {
-		profile->proxy_command = dup_string(pc.u.s);
+		/* Legacy support for single string proxy_command */
+		profile->proxy_argc = 1;
+		profile->proxy_command = calloc(2, sizeof(char *));
+		if (!profile->proxy_command) {
+			wlr_log_errno(WLR_ERROR, "Failed to allocate proxy command");
+			profile_free(profile);
+			toml_free(result);
+			return NULL;
+		}
+		profile->proxy_command[0] = dup_string(pc.u.s);
+		profile->proxy_command[1] = NULL;
+	} else if (pc.type == TOML_ARRAY && pc.u.arr.size > 0) {
+		/* New array format for proxy_command */
+		profile->proxy_command = dup_string_array(&pc, &profile->proxy_argc);
+		if (!profile->proxy_command) {
+			wlr_log_errno(WLR_ERROR, "Failed to allocate proxy command array");
+			profile_free(profile);
+			toml_free(result);
+			return NULL;
+		}
 	}
 
 	/* Parse [env] table (optional) */
@@ -280,7 +299,14 @@ profile_free(struct profile *profile)
 
 	free(profile->name);
 	free(profile->working_dir);
-	free(profile->proxy_command);
+
+	/* Free proxy command */
+	if (profile->proxy_command) {
+		for (int i = 0; i < profile->proxy_argc; i++) {
+			free(profile->proxy_command[i]);
+		}
+		free(profile->proxy_command);
+	}
 
 	/* Free env vars */
 	if (profile->env_vars) {
