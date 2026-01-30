@@ -95,8 +95,10 @@ handle_list_tabs(struct cg_control_client *client)
 			}
 		}
 
+		/* Add [H] marker for hidden (background) tabs */
+		const char *hidden_marker = tab->is_background ? " [H]" : "";
 		offset += snprintf(response + offset, CONTROL_BUFFER_SIZE - offset,
-				  "%d: [%s] %s\n", index, app_id, title);
+				  "%d: [%s]%s %s\n", index, app_id, hidden_marker, title);
 		index++;
 		free(view_title);
 		free(view_app_id);
@@ -166,6 +168,69 @@ handle_close_tab(struct cg_control_client *client, const char *arg, bool force)
 				/* Graceful close */
 				tab_destroy(tab);
 			}
+			control_client_send(client, "OK\n");
+			return;
+		}
+		index++;
+	}
+
+	control_client_send(client, "ERROR Tab index out of range\n");
+}
+
+static void
+handle_background_tab(struct cg_control_client *client, const char *arg)
+{
+	if (!arg || strlen(arg) == 0) {
+		control_client_send(client, "ERROR Missing tab index\n");
+		return;
+	}
+
+	char *endptr;
+	long tab_num = strtol(arg, &endptr, 10);
+	if (*endptr != '\0' || tab_num < 0) {
+		control_client_send(client, "ERROR Invalid tab index\n");
+		return;
+	}
+
+	struct cg_server *server = client->control->server;
+	int index = 0;
+	struct cg_tab *tab;
+
+	wl_list_for_each(tab, &server->tabs, link) {
+		if (index == tab_num) {
+			tab_set_background(tab, true);
+			control_client_send(client, "OK\n");
+			return;
+		}
+		index++;
+	}
+
+	control_client_send(client, "ERROR Tab index out of range\n");
+}
+
+static void
+handle_foreground_tab(struct cg_control_client *client, const char *arg)
+{
+	if (!arg || strlen(arg) == 0) {
+		control_client_send(client, "ERROR Missing tab index\n");
+		return;
+	}
+
+	char *endptr;
+	long tab_num = strtol(arg, &endptr, 10);
+	if (*endptr != '\0' || tab_num < 0) {
+		control_client_send(client, "ERROR Invalid tab index\n");
+		return;
+	}
+
+	struct cg_server *server = client->control->server;
+	int index = 0;
+	struct cg_tab *tab;
+
+	wl_list_for_each(tab, &server->tabs, link) {
+		if (index == tab_num) {
+			tab_set_background(tab, false);
+			tab_activate(tab);
 			control_client_send(client, "OK\n");
 			return;
 		}
@@ -319,6 +384,10 @@ process_command(struct cg_control_client *client, const char *command)
 		} else {
 			handle_close_tab(client, command + 10, false);
 		}
+	} else if (strncmp(command, "background ", 10) == 0) {
+		handle_background_tab(client, command + 10);
+	} else if (strncmp(command, "foreground ", 10) == 0) {
+		handle_foreground_tab(client, command + 10);
 	} else if (strncmp(command, "new-tab -- ", 10) == 0) {
 		handle_new_tab(client, command + 10);
 	} else if (strcmp(command, "show-launcher") == 0) {

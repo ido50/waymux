@@ -23,6 +23,13 @@ tab_activate(struct cg_tab *tab)
 }
 
 void
+tab_set_background(struct cg_tab *tab, bool background)
+{
+	(void)tab;
+	(void)background;
+}
+
+void
 tab_destroy(struct cg_tab *tab)
 {
 	(void)tab;
