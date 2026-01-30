@@ -76,11 +76,17 @@ static const struct wlr_buffer_impl pixel_buffer_impl = {
 
 /* Render launcher UI to a buffer */
 static struct wlr_buffer *
-render_launcher_ui(struct cg_launcher *launcher, int width, int height)
+render_launcher_ui(struct cg_launcher *launcher, int screen_width, int screen_height)
 {
-	/* Allocate buffer data */
-	size_t stride = width * 4;
-	size_t size = height * stride;
+	/* Launcher box dimensions - only render the box, not the whole screen */
+	(void)screen_width;
+	(void)screen_height;
+	int box_width = 600;
+	int box_height = 400;
+
+	/* Only allocate buffer for the launcher box area */
+	size_t stride = box_width * 4;
+	size_t size = box_height * stride;
 	uint32_t *data = calloc(1, size);
 	if (!data) {
 		return NULL;
@@ -88,7 +94,7 @@ render_launcher_ui(struct cg_launcher *launcher, int width, int height)
 
 	/* Create cairo surface */
 	cairo_surface_t *surface = cairo_image_surface_create_for_data(
-		(unsigned char *)data, CAIRO_FORMAT_ARGB32, width, height, stride);
+		(unsigned char *)data, CAIRO_FORMAT_ARGB32, box_width, box_height, stride);
 	if (cairo_surface_status(surface) != CAIRO_STATUS_SUCCESS) {
 		free(data);
 		return NULL;
@@ -101,27 +107,17 @@ render_launcher_ui(struct cg_launcher *launcher, int width, int height)
 		return NULL;
 	}
 
-	/* Clear with transparent background */
-	cairo_set_source_rgba(cr, 0, 0, 0, 0);
-	cairo_paint(cr);
-
-	/* Launcher box dimensions */
-	int box_width = 600;
-	int box_height = 400;
-	int box_x = (width - box_width) / 2;
-	int box_y = (height - box_height) / 2;
-
 	/* Draw launcher box background */
 	cairo_set_source_rgba(cr, launcher_box_bg[0], launcher_box_bg[1],
 			    launcher_box_bg[2], launcher_box_bg[3]);
-	cairo_rectangle(cr, box_x, box_y, box_width, box_height);
+	cairo_rectangle(cr, 0, 0, box_width, box_height);
 	cairo_fill(cr);
 
 	/* Draw search box at top */
 	int search_height = 50;
 	cairo_set_source_rgba(cr, launcher_query_bg[0], launcher_query_bg[1],
 			    launcher_query_bg[2], launcher_query_bg[3]);
-	cairo_rectangle(cr, box_x, box_y, box_width, search_height);
+	cairo_rectangle(cr, 0, 0, box_width, search_height);
 	cairo_fill(cr);
 
 	/* Draw search query text */
@@ -133,11 +129,11 @@ render_launcher_ui(struct cg_launcher *launcher, int width, int height)
 	/* Draw query text with cursor */
 	char query_display[LAUNCHER_MAX_QUERY + 2];
 	snprintf(query_display, sizeof(query_display), "%s|", launcher->query);
-	cairo_move_to(cr, box_x + 15, box_y + 30);
+	cairo_move_to(cr, 15, 30);
 	cairo_show_text(cr, query_display);
 
 	/* Draw results list */
-	int results_y = box_y + search_height + 10;
+	int results_y = search_height + 10;
 	int item_height = 40;
 	int max_items = (box_height - search_height - 20) / item_height;
 
@@ -150,14 +146,14 @@ render_launcher_ui(struct cg_launcher *launcher, int width, int height)
 					    launcher_selected_bg[1],
 					    launcher_selected_bg[2],
 					    launcher_selected_bg[3]);
-			cairo_rectangle(cr, box_x + 10, item_y, box_width - 20, item_height - 5);
+			cairo_rectangle(cr, 10, item_y, box_width - 20, item_height - 5);
 			cairo_fill(cr);
 		}
 
 		/* Draw application name */
 		struct cg_desktop_entry *entry = launcher->results[i];
 		cairo_set_source_rgb(cr, launcher_text[0], launcher_text[1], launcher_text[2]);
-		cairo_move_to(cr, box_x + 20, item_y + 25);
+		cairo_move_to(cr, 20, item_y + 25);
 
 		/* Truncate name if too long */
 		char name_display[100];
@@ -176,10 +172,10 @@ render_launcher_ui(struct cg_launcher *launcher, int width, int height)
 		return NULL;
 	}
 
-	wlr_buffer_init(&buffer->base, &pixel_buffer_impl, width, height);
+	wlr_buffer_init(&buffer->base, &pixel_buffer_impl, box_width, box_height);
 	buffer->data = data;
-	buffer->width = width;
-	buffer->height = height;
+	buffer->width = box_width;
+	buffer->height = box_height;
 	buffer->size = size;
 
 	return &buffer->base;
@@ -189,18 +185,29 @@ render_launcher_ui(struct cg_launcher *launcher, int width, int height)
 static void
 launcher_update_render(struct cg_launcher *launcher)
 {
-	if (!launcher->content_buffer) {
+	if (!launcher->content_buffer || !launcher->is_visible) {
 		return;
 	}
 
-	/* Get output dimensions */
+	/* Get output dimensions and position */
 	struct cg_output *output;
 	wl_list_for_each(output, &launcher->server->outputs, link) {
-		int width = output->wlr_output->width;
-		int height = output->wlr_output->height;
+		int screen_width = output->wlr_output->width;
+		int screen_height = output->wlr_output->height;
+
+		/* Calculate position for centered launcher box */
+		int box_width = 600;
+		int box_height = 400;
+		int box_x = (screen_width - box_width) / 2;
+		int box_y = (screen_height - box_height) / 2;
+
+		/* Position the content buffer at the correct location */
+		wlr_scene_node_set_position(&launcher->content_buffer->node,
+					    box_x, box_y);
 
 		/* Render new UI */
-		struct wlr_buffer *new_buffer = render_launcher_ui(launcher, width, height);
+		struct wlr_buffer *new_buffer = render_launcher_ui(launcher,
+								screen_width, screen_height);
 		if (new_buffer) {
 			wlr_scene_buffer_set_buffer(launcher->content_buffer, new_buffer);
 			wlr_buffer_drop(new_buffer);
@@ -533,7 +540,6 @@ launcher_show(struct cg_launcher *launcher)
 	launcher->query[0] = '\0';
 	launcher->query_len = 0;
 	launcher->selected_index = 0;
-	launcher_update_results(launcher);
 
 	/* Get the first output's dimensions */
 	struct cg_output *output;
