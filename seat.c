@@ -298,7 +298,7 @@ static bool
 handle_tab_keybinding(struct cg_server *server, xkb_keysym_t sym, uint32_t modifiers)
 {
 	/* Super+Shift+b: show background tabs dialog */
-	if (sym == XKB_KEY_b && (modifiers & WLR_MODIFIER_SHIFT)) {
+	if ((sym == XKB_KEY_b || sym == XKB_KEY_B) && (modifiers & WLR_MODIFIER_SHIFT)) {
 		background_dialog_toggle(server->background_dialog);
 		return true;
 	}
@@ -360,7 +360,7 @@ handle_tab_keybinding(struct cg_server *server, xkb_keysym_t sym, uint32_t modif
 	}
 
 	/* Super+b: toggle current tab background status (without Shift) */
-	if (sym == XKB_KEY_b) {
+	if ((sym == XKB_KEY_b || sym == XKB_KEY_B) && !(modifiers & WLR_MODIFIER_SHIFT)) {
 		if (server->active_tab) {
 			struct cg_tab *current = server->active_tab;
 			bool new_background = !current->is_background;
