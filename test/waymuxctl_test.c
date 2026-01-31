@@ -48,7 +48,14 @@ setup(void)
 	struct sockaddr_un addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sun_family = AF_UNIX;
-	strncpy(addr.sun_path, mock_socket_path, sizeof(addr.sun_path) - 1);
+#if defined(__GNUC__) && __GNUC__ >= 7
+	_Pragma("GCC diagnostic push")
+	_Pragma("GCC diagnostic ignored \"-Wformat-truncation\"")
+#endif
+	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", mock_socket_path);
+#if defined(__GNUC__) && __GNUC__ >= 7
+	_Pragma("GCC diagnostic pop")
+#endif
 
 	ck_assert_int_eq(bind(mock_server_fd, (struct sockaddr *)&addr, sizeof(addr)), 0);
 	ck_assert_int_eq(listen(mock_server_fd, 5), 0);
@@ -75,7 +82,14 @@ START_TEST(test_connect_to_socket)
 	struct sockaddr_un addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sun_family = AF_UNIX;
-	strncpy(addr.sun_path, mock_socket_path, sizeof(addr.sun_path) - 1);
+#if defined(__GNUC__) && __GNUC__ >= 7
+	_Pragma("GCC diagnostic push")
+	_Pragma("GCC diagnostic ignored \"-Wformat-truncation\"")
+#endif
+	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", mock_socket_path);
+#if defined(__GNUC__) && __GNUC__ >= 7
+	_Pragma("GCC diagnostic pop")
+#endif
 
 	int result = connect(client_fd, (struct sockaddr *)&addr, sizeof(addr));
 	ck_assert_int_eq(result, 0);

@@ -48,17 +48,16 @@ See *waymux-profile*(5) for details on the profile file format.
 *-h*
 	Show the help message.
 
+*-c* <path>
+	Load configuration from the specified file instead of the default
+	location. If not specified, WayMux searches for a config file in
+	*$XDG_CONFIG_HOME/waymux/config.toml* or *~/.config/waymux/config.toml*.
+	See *waymux-config*(5) for details on the configuration file format.
+
 *-i* <name>
 	Set the instance name. Multiple WayMux instances can run simultaneously,
 	each with a unique name. The default instance name is *default*.
 	See *waymuxctl*(1) for information on controlling specific instances.
-
-*-L* <mod>
-	Set the leader modifier for tab shortcuts. Supported options are:
-	*super* Use the Super (Windows/Logo) key (default).
-	*ctrl* Use the Control key.
-	*alt* Use the Alt key.
-	*shift* Use the Shift key.
 
 *-m* <mode>
 	Set the multi-monitor behavior. Supported modes are:
@@ -73,8 +72,11 @@ See *waymux-profile*(5) for details on the profile file format.
 
 # KEYBOARD SHORTCUTS
 
-WayMux uses the Super (Windows/Logo) key as a modifier for tab management
-commands:
+WayMux uses keyboard shortcuts for tab management. The default shortcuts use the
+Super (Windows/Logo) key as a modifier, but these can be customized in the
+configuration file. See *waymux-config*(5) for details.
+
+The default shortcuts are:
 
 *Super+J*
 	Switch to the previous tab.
@@ -198,7 +200,7 @@ _XKB_DEFAULT_VARIANT_, _XKB_DEFAULT_OPTIONS_
 
 # SEE ALSO
 
-*waymuxctl*(1), *waymux-profile*(5), *xkeyboard-config*(7)
+*waymuxctl*(1), *waymux-config*(5), *waymux-profile*(5), *xkeyboard-config*(7)
 
 # BUGS
 

@@ -71,7 +71,17 @@ connect_to_waymux(void)
 	struct sockaddr_un addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sun_family = AF_UNIX;
-	strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
+	/* Note: socket_path is already validated to fit in PATH_MAX above.
+	 * The warning about potential truncation is a false positive since
+	 * we check the length before calling snprintf. */
+#if defined(__GNUC__) && __GNUC__ >= 7
+	_Pragma("GCC diagnostic push")
+	_Pragma("GCC diagnostic ignored \"-Wformat-truncation\"")
+#endif
+	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", socket_path);
+#if defined(__GNUC__) && __GNUC__ >= 7
+	_Pragma("GCC diagnostic pop")
+#endif
 
 	if (connect(sock_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		perror("ERROR: Failed to connect to waymux socket");
