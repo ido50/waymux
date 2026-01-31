@@ -132,6 +132,7 @@ waymux = [
   'tab.c',
   'tab_bar.c',
   'view.c',
+  'waymux_config.c',
   'xdg_shell.c',
 ]
 
@@ -154,6 +155,7 @@ waymux_headers = [
   'tab.h',
   'tab_bar.h',
   'view.h',
+  'waymux_config.h',
   'xdg_shell.h',
 ]
 
@@ -261,6 +263,16 @@ if check.found()
     include_directories: include_directories('.'),
   )
 
+  # Waymux config tests
+  test_waymux_config = executable(
+    'waymux_config_test',
+    'test/waymux_config_test.c',
+    'waymux_config.c',
+    'keybinding.c',
+    dependencies: test_deps + [libtomlc17],
+    include_directories: include_directories('.'),
+  )
+
   # Run tests
   test('desktop_entry', test_desktop_entry)
   test('tab', test_tab)
@@ -268,4 +280,5 @@ if check.found()
   test('waymuxctl', test_waymuxctl)
   test('profile', test_profile)
   test('keybinding', test_keybinding)
+  test('waymux_config', test_waymux_config)
 endif
