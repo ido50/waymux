@@ -56,6 +56,7 @@
 #include "control.h"
 #include "desktop_entry.h"
 #include "idle_inhibit_v1.h"
+#include "keybinding.h"
 #include "launcher.h"
 #include "output.h"
 #include "background_dialog.h"
@@ -65,6 +66,7 @@
 #include "server.h"
 #include "tab_bar.h"
 #include "view.h"
+#include "waymux_config.h"
 #include "xdg_shell.h"
 #if WAYMUX_HAS_XWAYLAND
 #include "xwayland.h"
@@ -248,12 +250,11 @@ usage(FILE *file, const char *waymux)
 	fprintf(file,
 		"Usage: %s [OPTIONS] [--] [APPLICATION...]\n"
 		"\n"
+		" -c <path> Path to config file (default: $XDG_CONFIG_HOME/waymux/config.toml)\n"
 		" -d\t Don't draw client side decorations, when possible\n"
 		" -D\t Enable debug logging\n"
 		" -h\t Display this help message\n"
 		" -i <name> Set instance name (default: default)\n"
-		" -L <mod> Set leader modifier for tab shortcuts (default: super)\n"
-		"         Options: super, ctrl, alt, shift\n"
 		" -m extend Extend the display across all connected outputs (default)\n"
 		" -m last Use only the last connected output\n"
 		" -s\t Allow VT switching\n"
@@ -267,8 +268,16 @@ static bool
 parse_args(struct cg_server *server, int argc, char *argv[])
 {
 	int c;
-	while ((c = getopt(argc, argv, "dDhi:L:m:sv")) != -1) {
+	while ((c = getopt(argc, argv, "c:dDhi:m:sv")) != -1) {
 		switch (c) {
+		case 'c':
+			free(server->config_path);
+			server->config_path = strdup(optarg);
+			if (!server->config_path) {
+				wlr_log_errno(WLR_ERROR, "Failed to allocate config path");
+				return false;
+			}
+			break;
 		case 'd':
 			server->xdg_decoration = true;
 			break;
@@ -283,21 +292,6 @@ parse_args(struct cg_server *server, int argc, char *argv[])
 			server->instance_name = strdup(optarg);
 			if (!server->instance_name) {
 				wlr_log_errno(WLR_ERROR, "Failed to allocate instance name");
-				return false;
-			}
-			break;
-		case 'L':
-			if (strcmp(optarg, "super") == 0) {
-				server->leader_modifier = WLR_MODIFIER_LOGO;
-			} else if (strcmp(optarg, "ctrl") == 0) {
-				server->leader_modifier = WLR_MODIFIER_CTRL;
-			} else if (strcmp(optarg, "alt") == 0) {
-				server->leader_modifier = WLR_MODIFIER_ALT;
-			} else if (strcmp(optarg, "shift") == 0) {
-				server->leader_modifier = WLR_MODIFIER_SHIFT;
-			} else {
-				fprintf(stderr, "Invalid modifier: %s\n", optarg);
-				usage(stderr, argv[0]);
 				return false;
 			}
 			break;
@@ -469,8 +463,9 @@ main(int argc, char *argv[])
 	pid_t pid = 0;
 	int ret = 0, app_ret = 0;
 
-	/* Set default leader modifier to Super (Logo) */
-	server.leader_modifier = WLR_MODIFIER_LOGO;
+	/* Initialize config fields */
+	server.config = NULL;
+	server.config_path = NULL;
 
 	/* Set default instance name */
 	server.instance_name = strdup("default");
@@ -491,6 +486,19 @@ main(int argc, char *argv[])
 	}
 
 	wlr_log_init(server.log_level, NULL);
+
+	/* Load keybinding configuration */
+	server.config = waymux_config_load(server.config_path);
+	if (!server.config) {
+		/* waymux_config_load returns NULL on parse error */
+		wlr_log(WLR_ERROR, "Failed to load configuration file");
+		return 1;
+	}
+	if (server.config->config_path) {
+		wlr_log(WLR_INFO, "Loaded configuration from: %s", server.config->config_path);
+	} else {
+		wlr_log(WLR_INFO, "Using default keybindings (no config file found)");
+	}
 
 	/* Wayland requires XDG_RUNTIME_DIR to be set. */
 	if (!getenv("XDG_RUNTIME_DIR")) {
@@ -932,6 +940,10 @@ end:
 
 	/* Unregister this instance from the registry */
 	registry_unregister_instance(&server);
+
+	/* Free configuration */
+	waymux_config_free(server.config);
+	free(server.config_path);
 
 	/* This function is not null-safe, but we only ever get here
 	   with a proper wl_display. */

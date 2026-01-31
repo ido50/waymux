@@ -23,6 +23,7 @@ struct cg_launcher;
 struct cg_desktop_entry_manager;
 struct cg_tab_bar;
 struct cg_background_dialog;
+struct waymux_config;
 
 enum cg_multi_output_mode {
 	WAYMUX_MULTI_OUTPUT_MODE_EXTEND,
@@ -102,7 +103,8 @@ struct cg_server {
 	bool return_app_code;
 	bool terminated;
 	enum wlr_log_importance log_level;
-	uint32_t leader_modifier; /* Key modifier for tab shortcuts (default: logo/Super) */
+	struct waymux_config *config; /* Keybindings configuration */
+	char *config_path; /* Custom config file path from -c flag */
 	char *instance_name; /* Instance name for multi-instance support */
 	char *profile_name; /* Profile name (if loaded from profile) */
 };

@@ -205,9 +205,9 @@ waymux_config_load(const char *custom_path)
 	wlr_log(WLR_INFO, "Loading config from: %s", config_path);
 
 	toml_result_t result = toml_parse_file_ex(config_path);
-	free(config_path);
 
 	if (!result.ok) {
+		free(config_path);
 		wlr_log(WLR_ERROR, "Failed to parse config file: %s", result.errmsg);
 		toml_free(result);
 		return NULL;
@@ -215,10 +215,14 @@ waymux_config_load(const char *custom_path)
 
 	struct waymux_config *config = calloc(1, sizeof(struct waymux_config));
 	if (!config) {
+		free(config_path);
 		wlr_log_errno(WLR_ERROR, "Failed to allocate config");
 		toml_free(result);
 		return NULL;
 	}
+
+	/* Store the config path for later reference */
+	config->config_path = config_path;
 
 	toml_datum_t root = result.toptab;
 

@@ -36,6 +36,7 @@
 #include <wlr/xwayland.h>
 #endif
 
+#include "keybinding.h"
 #include "launcher.h"
 #include "background_dialog.h"
 #include "output.h"
@@ -44,6 +45,7 @@
 #include "tab.h"
 #include "tab_bar.h"
 #include "view.h"
+#include "waymux_config.h"
 #if WAYMUX_HAS_XWAYLAND
 #include "xwayland.h"
 #endif
@@ -293,18 +295,43 @@ handle_keybinding(struct cg_server *server, xkb_keysym_t sym)
 	return false;
 }
 
-/* Handle WayMux-specific tab keybindings with Super (logo) modifier */
+/* Handle WayMux-specific tab keybindings using configured keybindings */
 static bool
 handle_tab_keybinding(struct cg_server *server, xkb_keysym_t sym, uint32_t modifiers)
 {
-	/* Super+Shift+b: show background tabs dialog */
-	if ((sym == XKB_KEY_b || sym == XKB_KEY_B) && (modifiers & WLR_MODIFIER_SHIFT)) {
+	struct waymux_config *config = server->config;
+
+	/* Check show_background_dialog keybinding */
+	if (config->show_background_dialog &&
+	    keybinding_match(config->show_background_dialog, modifiers, sym)) {
 		background_dialog_toggle(server->background_dialog);
 		return true;
 	}
 
-	/* Super+j: previous tab */
-	if (sym == XKB_KEY_j) {
+	/* Check toggle_background keybinding */
+	if (config->toggle_background &&
+	    keybinding_match(config->toggle_background, modifiers, sym)) {
+		if (server->active_tab) {
+			struct cg_tab *current = server->active_tab;
+			bool new_background = !current->is_background;
+			tab_set_background(current, new_background);
+
+			/* If tab became background, switch to next non-background tab */
+			if (new_background) {
+				struct cg_tab *next_tab = tab_next(current);
+				if (next_tab && next_tab != current) {
+					tab_activate(next_tab);
+				}
+			} else {
+				/* Tab became foreground, activate it */
+				tab_activate(current);
+			}
+			return true;
+		}
+	}
+
+	/* Check prev_tab keybinding */
+	if (config->prev_tab && keybinding_match(config->prev_tab, modifiers, sym)) {
 		if (server->active_tab) {
 			struct cg_tab *prev_tab = tab_prev(server->active_tab);
 			if (prev_tab) {
@@ -314,8 +341,8 @@ handle_tab_keybinding(struct cg_server *server, xkb_keysym_t sym, uint32_t modif
 		}
 	}
 
-	/* Super+k: next tab */
-	if (sym == XKB_KEY_k) {
+	/* Check next_tab keybinding */
+	if (config->next_tab && keybinding_match(config->next_tab, modifiers, sym)) {
 		if (server->active_tab) {
 			struct cg_tab *next_tab = tab_next(server->active_tab);
 			if (next_tab) {
@@ -325,8 +352,8 @@ handle_tab_keybinding(struct cg_server *server, xkb_keysym_t sym, uint32_t modif
 		}
 	}
 
-	/* Super+d: close current tab and switch to next */
-	if (sym == XKB_KEY_d) {
+	/* Check close_tab keybinding */
+	if (config->close_tab && keybinding_match(config->close_tab, modifiers, sym)) {
 		if (server->active_tab) {
 			struct cg_tab *current = server->active_tab;
 			struct cg_tab *next_tab = tab_next(current);
@@ -353,31 +380,11 @@ handle_tab_keybinding(struct cg_server *server, xkb_keysym_t sym, uint32_t modif
 		}
 	}
 
-	/* Super+n: toggle application launcher */
-	if (sym == XKB_KEY_n) {
+	/* Check open_launcher keybinding */
+	if (config->open_launcher &&
+	    keybinding_match(config->open_launcher, modifiers, sym)) {
 		launcher_toggle(server->launcher);
 		return true;
-	}
-
-	/* Super+b: toggle current tab background status (without Shift) */
-	if ((sym == XKB_KEY_b || sym == XKB_KEY_B) && !(modifiers & WLR_MODIFIER_SHIFT)) {
-		if (server->active_tab) {
-			struct cg_tab *current = server->active_tab;
-			bool new_background = !current->is_background;
-			tab_set_background(current, new_background);
-
-			/* If tab became background, switch to next non-background tab */
-			if (new_background) {
-				struct cg_tab *next_tab = tab_next(current);
-				if (next_tab && next_tab != current) {
-					tab_activate(next_tab);
-				}
-			} else {
-				/* Tab became foreground, activate it */
-				tab_activate(current);
-			}
-			return true;
-		}
 	}
 
 	return false;
@@ -418,8 +425,8 @@ handle_key_event(struct wlr_keyboard *keyboard, struct cg_seat *seat, void *data
 			}
 		}
 
-		/* Check for WayMux tab keybindings (leader modifier + key) */
-		if (!handled && (modifiers & seat->server->leader_modifier)) {
+		/* Check for WayMux tab keybindings */
+		if (!handled) {
 			for (int i = 0; i < nsyms; i++) {
 				if (handle_tab_keybinding(seat->server, syms[i], modifiers)) {
 					handled = true;
