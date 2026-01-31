@@ -1,0 +1,26 @@
+# WayMux example profile
+# This profile demonstrates how to configure tabs and environment variables
+
+# Working directory for the tabs
+working_dir = "~"
+
+# Environment variables that will be set for all tabs
+[env]
+# Example environment variables
+# PATH = "/custom/path:$PATH"
+# EDITOR = "vim"
+
+# Tab configurations
+[[tabs]]
+# Terminal emulator
+command = "foot"
+title = "Terminal"
+
+# More tabs can be added as needed:
+# [[tabs]]
+# command = "vim"
+# title = "Editor"
+#
+# [[tabs]]
+# command = "htop"
+# title = "System Monitor"

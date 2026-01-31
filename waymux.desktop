@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=WayMux
+Comment=Tabbed Wayland Compositor
+Exec=waymux -P
+Icon=waymux
+Terminal=false
+Categories=System;WM;
+Keywords=wayland;compositor;window manager;
