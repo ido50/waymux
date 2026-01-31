@@ -42,6 +42,12 @@ management, application launching, and profile support.
 - **Wayland native**: Built on wlroots for a pure Wayland experience
 - **Client-server protocol**: Control a WayMux instance from outside with `waymuxctl`
 
+![screenshot](screenshot.jpg)
+
+In this screenshot, WayMux is the large window in the master area (left) of the
+screen. Notice the tab bar showing multiple applications. Everything outside
+of this window is the host compositor (Hyprland in this case).
+
 ## Installation
 
 ### Arch Linux (AUR)
