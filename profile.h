@@ -50,4 +50,13 @@ struct profile *profile_load(const char *name);
  */
 void profile_free(struct profile *profile);
 
+/* Forward declaration for cg_server (defined in server.h) */
+struct cg_server;
+
+/**
+ * Spawn tabs from a profile
+ * Returns true on success, false on failure
+ */
+bool spawn_profile_tabs(struct cg_server *server, const char *profile_name);
+
 #endif

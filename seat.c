@@ -39,6 +39,7 @@
 #include "keybinding.h"
 #include "launcher.h"
 #include "background_dialog.h"
+#include "profile_selector.h"
 #include "output.h"
 #include "seat.h"
 #include "server.h"
@@ -405,8 +406,18 @@ handle_key_event(struct wlr_keyboard *keyboard, struct cg_seat *seat, void *data
 	uint32_t modifiers = wlr_keyboard_get_modifiers(keyboard);
 
 	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+		/* If profile selector is visible, forward keys to it first */
+		if (seat->server->profile_selector && seat->server->profile_selector->is_visible) {
+			for (int i = 0; i < nsyms; i++) {
+				if (profile_selector_handle_key(seat->server->profile_selector, syms[i], event->keycode)) {
+					handled = true;
+					break;
+				}
+			}
+		}
+
 		/* If launcher is visible, forward keys to it first */
-		if (seat->server->launcher && seat->server->launcher->is_visible) {
+		if (!handled && seat->server->launcher && seat->server->launcher->is_visible) {
 			for (int i = 0; i < nsyms; i++) {
 				if (launcher_handle_key(seat->server->launcher, syms[i], event->keycode)) {
 					handled = true;

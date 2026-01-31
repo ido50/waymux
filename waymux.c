@@ -60,6 +60,7 @@
 #include "launcher.h"
 #include "output.h"
 #include "background_dialog.h"
+#include "profile_selector.h"
 #include "profile.h"
 #include "registry.h"
 #include "seat.h"
@@ -388,7 +389,7 @@ spawn_profile_tab(struct cg_server *server, struct profile *profile, struct prof
 	return true;
 }
 
-static bool
+bool
 spawn_profile_tabs(struct cg_server *server, const char *profile_name)
 {
 	/* Check if profile is already in use by another instance */
@@ -597,6 +598,14 @@ main(int argc, char *argv[])
 	server.background_dialog = background_dialog_create(&server);
 	if (!server.background_dialog) {
 		wlr_log(WLR_ERROR, "Unable to create background dialog");
+		ret = 1;
+		goto end;
+	}
+
+	/* Create profile selector */
+	server.profile_selector = profile_selector_create(&server);
+	if (!server.profile_selector) {
+		wlr_log(WLR_ERROR, "Unable to create profile selector");
 		ret = 1;
 		goto end;
 	}
@@ -879,7 +888,9 @@ main(int argc, char *argv[])
 #endif
 
 	/* Check if the first argument is a profile name (not starting with '-') */
-	if (optind < argc && argv[optind][0] != '-' && strcmp(argv[optind], "--") != 0) {
+	/* Skip profile loading if -P (profile_selector_mode) is enabled */
+	if (!server.profile_selector_mode &&
+	    optind < argc && argv[optind][0] != '-' && strcmp(argv[optind], "--") != 0) {
 		const char *profile_name = argv[optind];
 		wlr_log(WLR_INFO, "Loading profile: %s", profile_name);
 
@@ -890,6 +901,12 @@ main(int argc, char *argv[])
 		}
 
 		optind++; /* Skip profile name */
+	}
+
+	/* Show profile selector if -P flag was used */
+	if (server.profile_selector_mode) {
+		wlr_log(WLR_INFO, "Profile selector mode enabled, showing selector");
+		profile_selector_show(server.profile_selector);
 	}
 
 	/* Check if there's a primary client to spawn (after profile and/or --) */
@@ -941,6 +958,7 @@ end:
 	control_server_destroy(server.control);
 	desktop_entry_manager_destroy(server.desktop_entries);
 	launcher_destroy(server.launcher);
+	profile_selector_destroy(server.profile_selector);
 
 	/* Unregister this instance from the registry */
 	registry_unregister_instance(&server);
