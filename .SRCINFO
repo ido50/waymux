@@ -1,18 +1,18 @@
-pkgbase = waymux
+pkgbase = waymux-bin
 	pkgdesc = Tabbed Wayland Compositor
-	pkgver = 0.2.1
+	pkgver = 0.0.1
 	pkgrel = 1
-	url = https://github.com/yourusername/waymux
+	url = https://github.com/ido50/waymux
 	arch = x86_64
 	license = MIT
 	checkdepends = check
 	makedepends = meson>=0.58.1
 	makedepends = scdoc>=1.9.2
 	makedepends = check
-	depends = wlroots>=0.19
+	depends = wlroots0.19
 	depends = wayland
 	depends = libxkbcommon
 	depends = cairo
-	depends = libtomlc17
+	depends = tomlc17-git
 
-pkgname = waymux
+pkgname = waymux-bin

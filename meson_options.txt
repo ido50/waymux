@@ -1,2 +1,3 @@
 option('man-pages', type: 'feature', value: 'auto', description: 'Generate and install man pages')
 option('tests', type: 'boolean', value: false, description: 'Build unit tests (requires Check framework)')
+option('use_git_version', type: 'boolean', value: true, description: 'Include git commit hash in version string')

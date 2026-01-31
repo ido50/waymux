@@ -1,5 +1,5 @@
 project('waymux', 'c',
-  version: '0.2.1',
+  version: '0.0.1',
   license: 'MIT',
   meson_version: '>=0.58.1',
   default_options: [
@@ -8,6 +8,9 @@ project('waymux', 'c',
     'werror=true',
   ],
 )
+
+# Option to include git commit in version string
+use_git_version = get_option('use_git_version')
 
 add_project_arguments(
   [
@@ -71,16 +74,18 @@ server_protos = declare_dependency(
 have_xwayland = wlroots.get_variable(pkgconfig: 'have_xwayland', internal: 'have_xwayland') == 'true'
 
 version = '@0@'.format(meson.project_version())
-git = find_program('git', native: true, required: false)
-if git.found()
-  git_commit = run_command([git, 'rev-parse', '--short', 'HEAD'], check: false)
-  git_branch = run_command([git, 'rev-parse', '--abbrev-ref', 'HEAD'], check: false)
-  if git_commit.returncode() == 0 and git_branch.returncode() == 0
-    version = '@0@-@1@ (branch \'@2@\')'.format(
-      meson.project_version(),
-      git_commit.stdout().strip(),
-      git_branch.stdout().strip(),
-    )
+if use_git_version
+  git = find_program('git', native: true, required: false)
+  if git.found()
+    git_commit = run_command([git, 'rev-parse', '--short', 'HEAD'], check: false)
+    git_branch = run_command([git, 'rev-parse', '--abbrev-ref', 'HEAD'], check: false)
+    if git_commit.returncode() == 0 and git_branch.returncode() == 0
+      version = '@0@-@1@ (branch \'@2@\')'.format(
+        meson.project_version(),
+        git_commit.stdout().strip(),
+        git_branch.stdout().strip(),
+      )
+    endif
   endif
 endif
 
@@ -198,6 +203,17 @@ summary = [
   ''
 ]
 message('\n'.join(summary))
+
+custom_target(
+    'pacman-package',
+    output: meson.project_name() + '-' + meson.project_version() + '-1-x86_64.pkg.tar.zst',
+    command: [
+        'sh', '-c',
+	'cd ' + meson.project_source_root() + ' && PKGDEST=' + meson.project_build_root() + ' makepkg -ef && makepkg --printsrcinfo > .SRCINFO',
+    ],
+    build_by_default: false,
+    console: true,
+)
 
 # Tests
 if check.found()

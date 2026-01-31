@@ -1,28 +1,31 @@
-# Maintainer: Your Name <your.email@example.com>
-pkgname=waymux
-pkgver=0.2.1
+# Maintainer: Ido Perlmuter <ido@ido50.net>
+pkgname=waymux-bin
+pkgver=0.0.1
 pkgrel=1
 pkgdesc="Tabbed Wayland Compositor"
 arch=('x86_64')
-url="https://github.com/yourusername/waymux"
+url="https://github.com/ido50/waymux"
 license=('MIT')
-depends=('wlroots>=0.19' 'wayland' 'libxkbcommon' 'cairo' 'libtomlc17')
+depends=('wlroots0.19' 'wayland' 'libxkbcommon' 'cairo' 'tomlc17-git')
 makedepends=('meson>=0.58.1' 'scdoc>=1.9.2' 'check')
 checkdepends=('check')
 source=()
 sha256sums=()
 
 build() {
-  arch-meson build
+  cd "$startdir"
+  arch-meson -Duse_git_version=false "$startdir" build
   meson compile -C build
 }
 
 check() {
+  cd "$startdir"
   meson test -C build --print-errorlogs
 }
 
 package() {
-  DESTDIR="$pkgdir" meson install -C build
+  cd "$startdir"
+  meson install -C build --destdir "$pkgdir"
 
   # Install example profile
   install -Dm644 example-profile.toml "$pkgdir/usr/share/$pkgname/examples/example-profile.toml"
