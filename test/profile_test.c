@@ -119,7 +119,7 @@ teardown(void)
 	}
 	/* Restore original working directory */
 	if (saved_cwd) {
-		chdir(saved_cwd);
+		(void)chdir(saved_cwd);
 		free(saved_cwd);
 		saved_cwd = NULL;
 	}
