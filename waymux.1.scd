@@ -16,7 +16,7 @@ application, and you can switch between tabs using keyboard shortcuts or the
 tab bar.
 
 WayMux is designed to run inside an existing Wayland compositor (such as sway,
-GNOME, or KDE), where it appears as a single window containing your tabbed
+Hyprland, etc.), where it appears as a single window containing your tabbed
 applications. This makes it ideal for organizing related applications or
 creating dedicated workspaces.
 
@@ -90,9 +90,7 @@ The default shortcuts are:
 	Switch to the next tab.
 
 *Super+D*
-	Close the current tab. If the tab has a running application, WayMux will
-	ask for confirmation before closing. Use *waymuxctl close-tab --force*
-	to close without confirmation.
+	Close the current tab.
 
 *Super+B*
 	Toggle the current tab as a background tab. Background tabs are hidden
@@ -120,6 +118,9 @@ In the launcher:
 
 *Escape*
 	Close the launcher without launching an application.
+
+*Type*
+	Filter the list
 
 # EXAMPLES
 

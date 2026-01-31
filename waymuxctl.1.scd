@@ -38,9 +38,9 @@ running, you can specify which one to control using the *-i* option or the
 	*list-tabs*.
 
 *close-tab* [--force] _NUM_
-	Close tab _NUM_. If the tab has a running application, WayMux will ask
-	for confirmation before closing. Use *--force* to close the tab without
-	confirmation.
+	Close tab _NUM_. If the tab has a running application, WayMux will
+	terminate the application gracefully. Use *--force* to kill the
+	application instead.
 
 *background* _NUM_
 	Move tab _NUM_ to the background. Background tabs are hidden from the
@@ -73,13 +73,13 @@ $ waymuxctl list-tabs
 $ waymuxctl focus-tab 1
 ```
 
-*Close a tab with confirmation*
+*Close a tab*
 
 ```
 $ waymuxctl close-tab 2
 ```
 
-*Force-close a tab without confirmation*
+*Kill a tab*
 
 ```
 $ waymuxctl close-tab --force 2

@@ -45,8 +45,7 @@ The following keybindings can be configured:
 	Default: *"Super+J"*
 
 *close_tab*
-	Close the current tab. If the tab has a running application, WayMux will
-	ask for confirmation before closing.
+	Close the current tab.
 	Default: *"Super+D"*
 
 *open_launcher*
