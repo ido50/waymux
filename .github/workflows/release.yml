@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-aur-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wayland protocols wayland-protocols-dev \
+            libxkbcommon-dev libcairo2-dev libcheck-dev meson scdoc
+
+      - name: Build AUR package
+        run: |
+          meson setup build -Duse_git_version=false
+          meson compile -C build pacman-package
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: waymux-bin-*.pkg.tar.zst*
+          generate_release_notes: true
+          body: |
+            ## Installation
+
+            ### Arch Linux (AUR)
+
+            Download the package below and install with:
+
+            ```bash
+            pacman -U waymux-bin-*.pkg.tar.zst
+            ```
+
+            Or build from the AUR (when available):
+            ```bash
+            paru -S waymux-bin
+            # or
+            yay -S waymux-bin
+            ```
