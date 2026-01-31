@@ -257,6 +257,7 @@ usage(FILE *file, const char *waymux)
 		" -i <name> Set instance name (default: default)\n"
 		" -m extend Extend the display across all connected outputs (default)\n"
 		" -m last Use only the last connected output\n"
+		" -P\t Show profile selector on startup\n"
 		" -s\t Allow VT switching\n"
 		" -v\t Show the version number and exit\n"
 		"\n"
@@ -268,7 +269,7 @@ static bool
 parse_args(struct cg_server *server, int argc, char *argv[])
 {
 	int c;
-	while ((c = getopt(argc, argv, "c:dDhi:m:sv")) != -1) {
+	while ((c = getopt(argc, argv, "c:dDhi:m:Psv")) != -1) {
 		switch (c) {
 		case 'c':
 			free(server->config_path);
@@ -301,6 +302,9 @@ parse_args(struct cg_server *server, int argc, char *argv[])
 			} else if (strcmp(optarg, "extend") == 0) {
 				server->output_mode = WAYMUX_MULTI_OUTPUT_MODE_EXTEND;
 			}
+			break;
+		case 'P':
+			server->profile_selector_mode = true;
 			break;
 		case 's':
 			server->allow_vt_switch = true;

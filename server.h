@@ -23,6 +23,7 @@ struct cg_launcher;
 struct cg_desktop_entry_manager;
 struct cg_tab_bar;
 struct cg_background_dialog;
+struct cg_profile_selector;
 struct waymux_config;
 
 enum cg_multi_output_mode {
@@ -64,6 +65,9 @@ struct cg_server {
 	/* Background tabs dialog */
 	struct cg_background_dialog *background_dialog;
 
+	/* Profile selector */
+	struct cg_profile_selector *profile_selector;
+
 	/* Tab bar UI */
 	struct cg_tab_bar *tab_bar;
 
@@ -102,6 +106,7 @@ struct cg_server {
 	bool allow_vt_switch;
 	bool return_app_code;
 	bool terminated;
+	bool profile_selector_mode; /* -P flag: show profile selector on startup */
 	enum wlr_log_importance log_level;
 	struct waymux_config *config; /* Keybindings configuration */
 	char *config_path; /* Custom config file path from -c flag */
