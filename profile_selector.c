@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <time.h>
 #include <wlr/util/log.h>
 #include <xkbcommon/xkbcommon.h>
 #include <cairo/cairo.h>
@@ -247,9 +248,10 @@ render_selector_ui(struct cg_profile_selector *selector, int screen_width, int s
 static void
 selector_update_render(struct cg_profile_selector *selector)
 {
-	if (!selector->content_buffer || !selector->is_visible || !selector->dirty) {
+	if (!selector->is_visible || !selector->dirty) {
 		return;
 	}
+	/* Don't return early if content_buffer is NULL - we need to create it on first render */
 
 	/* Get output dimensions and position */
 	struct cg_output *output;
@@ -263,6 +265,11 @@ selector_update_render(struct cg_profile_selector *selector)
 		int box_x = (screen_width - box_width) / 2;
 		int box_y = (screen_height - box_height) / 2;
 
+		/* Create content buffer on-demand if it doesn't exist */
+		if (!selector->content_buffer) {
+			selector->content_buffer = wlr_scene_buffer_create(selector->scene_tree, NULL);
+		}
+
 		/* Position the content buffer at the correct location */
 		wlr_scene_node_set_position(&selector->content_buffer->node,
 					    box_x, box_y);
@@ -274,6 +281,9 @@ selector_update_render(struct cg_profile_selector *selector)
 			wlr_scene_buffer_set_buffer(selector->content_buffer, new_buffer);
 			wlr_buffer_drop(new_buffer);
 		}
+
+		/* Re-set position AFTER setting buffer content to ensure it's correct */
+		wlr_scene_node_set_position(&selector->content_buffer->node, box_x, box_y);
 
 		selector->dirty = false;
 
@@ -380,6 +390,9 @@ profile_selector_create(struct cg_server *server)
 		return NULL;
 	}
 
+	/* Position background at (0, 0) explicitly */
+	wlr_scene_node_set_position(&selector->background->node, 0, 0);
+
 	/* Create special "(no profile)" entry */
 	struct cg_profile_entry *no_profile = calloc(1, sizeof(struct cg_profile_entry));
 	if (no_profile) {
@@ -445,31 +458,40 @@ profile_selector_show(struct cg_profile_selector *selector)
 
 	/* Get the first output's dimensions */
 	struct cg_output *output;
+	int screen_width = 0;
+	int screen_height = 0;
 	wl_list_for_each(output, &selector->server->outputs, link) {
 		struct wlr_output *wlr_output = output->wlr_output;
-		int width = wlr_output->width;
-		int height = wlr_output->height;
+		screen_width = wlr_output->width;
+		screen_height = wlr_output->height;
 
 		/* Resize background to match output */
-		wlr_scene_rect_set_size(selector->background, width, height);
-
-		/* Create content buffer for UI if not exists */
-		if (!selector->content_buffer) {
-			selector->content_buffer =
-				wlr_scene_buffer_create(selector->scene_tree, NULL);
-		}
+		wlr_scene_rect_set_size(selector->background, screen_width, screen_height);
 
 		break; /* Use first output for now */
 	}
 
-	wlr_scene_node_set_enabled(&selector->scene_tree->node, true);
-	wlr_scene_node_raise_to_top(&selector->scene_tree->node);
-	selector->is_visible = true;
+	/* Create and position content buffer BEFORE enabling scene tree */
+	if (!selector->content_buffer && screen_width > 0 && screen_height > 0) {
+		int box_width = 600;
+		int box_height = 400;
+		int box_x = (screen_width - box_width) / 2;
+		int box_y = (screen_height - box_height) / 2;
 
-	/* Update results and render (must be after is_visible is set) */
+		selector->content_buffer = wlr_scene_buffer_create(selector->scene_tree, NULL);
+		wlr_scene_node_set_position(&selector->content_buffer->node, box_x, box_y);
+	}
+
+	/* Record when selector was shown (for input grace period) */
+	clock_gettime(CLOCK_MONOTONIC, &selector->shown_time);
+
+	/* Update results and render BEFORE enabling scene tree */
+	selector->is_visible = true;
 	selector_update_results(selector);
 
-	wlr_log(WLR_DEBUG, "Profile selector shown");
+	/* NOW enable the scene tree after content is ready */
+	wlr_scene_node_set_enabled(&selector->scene_tree->node, true);
+	wlr_scene_node_raise_to_top(&selector->scene_tree->node);
 }
 
 void
@@ -485,6 +507,42 @@ profile_selector_hide(struct cg_profile_selector *selector)
 	wlr_log(WLR_DEBUG, "Profile selector hidden");
 }
 
+void
+profile_selector_reposition(struct cg_profile_selector *selector)
+{
+	if (!selector || !selector->is_visible) {
+		return;
+	}
+
+	/* Get the first output's dimensions */
+	struct cg_output *output;
+	wl_list_for_each(output, &selector->server->outputs, link) {
+		struct wlr_output *wlr_output = output->wlr_output;
+		int screen_width = wlr_output->width;
+		int screen_height = wlr_output->height;
+
+		/* Resize background to match output */
+		wlr_scene_rect_set_size(selector->background, screen_width, screen_height);
+
+		/* Calculate centered position */
+		int box_width = 600;
+		int box_height = 400;
+		int box_x = (screen_width - box_width) / 2;
+		int box_y = (screen_height - box_height) / 2;
+
+		/* Update content buffer position */
+		if (selector->content_buffer) {
+			wlr_scene_node_set_position(&selector->content_buffer->node, box_x, box_y);
+		}
+
+		/* Mark for re-render */
+		selector->dirty = true;
+		selector_update_render(selector);
+
+		break; /* Use first output */
+	}
+}
+
 /* Handle keyboard input when selector is visible */
 bool
 profile_selector_handle_key(struct cg_profile_selector *selector, xkb_keysym_t sym, uint32_t keycode)
@@ -492,6 +550,17 @@ profile_selector_handle_key(struct cg_profile_selector *selector, xkb_keysym_t s
 	(void)keycode;
 	if (!selector || !selector->is_visible) {
 		return false;
+	}
+
+	/* Add a 200ms grace period after showing the selector to prevent
+	 * accidental Enter key presses from immediately closing it */
+	struct timespec current_time;
+	clock_gettime(CLOCK_MONOTONIC, &current_time);
+	long elapsed_ms = (current_time.tv_sec - selector->shown_time.tv_sec) * 1000 +
+			  (current_time.tv_nsec - selector->shown_time.tv_nsec) / 1000000;
+
+	if (elapsed_ms < 200) {
+		return false;  /* Ignore all keys during grace period */
 	}
 
 	bool handled = true;

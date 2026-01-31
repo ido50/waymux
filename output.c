@@ -37,6 +37,7 @@
 #include "seat.h"
 #include "server.h"
 #include "view.h"
+#include "profile_selector.h"
 #if WAYMUX_HAS_XWAYLAND
 #include "xwayland.h"
 #endif
@@ -152,6 +153,21 @@ handle_output_commit(struct wl_listener *listener, void *data)
 {
 	struct cg_output *output = wl_container_of(listener, output, commit);
 	struct wlr_output_event_commit *event = data;
+
+	/* Show profile selector after output is configured and committed */
+	if (output->server->profile_selector_pending_show &&
+	    (event->state->committed & WLR_OUTPUT_STATE_MODE)) {
+		output->server->profile_selector_pending_show = false;
+		wlr_log(WLR_INFO, "Output mode committed, showing profile selector");
+		profile_selector_show(output->server->profile_selector);
+	}
+
+	/* Update selector position if output mode changes while selector is visible */
+	if (output->server->profile_selector &&
+	    output->server->profile_selector->is_visible &&
+	    (event->state->committed & WLR_OUTPUT_STATE_MODE)) {
+		profile_selector_reposition(output->server->profile_selector);
+	}
 
 	/* Notes:
 	 * - output layout change will also be called if needed to position the views

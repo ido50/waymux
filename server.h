@@ -107,6 +107,7 @@ struct cg_server {
 	bool return_app_code;
 	bool terminated;
 	bool profile_selector_mode; /* -P flag: show profile selector on startup */
+	bool profile_selector_pending_show; /* Internal: selector should be shown on first frame */
 	enum wlr_log_importance log_level;
 	struct waymux_config *config; /* Keybindings configuration */
 	char *config_path; /* Custom config file path from -c flag */

@@ -33,6 +33,9 @@ struct cg_profile_selector {
 	bool is_visible;
 	bool dirty;  /* UI needs re-rendering */
 
+	/* Timestamp when selector was shown (for input grace period) */
+	struct timespec shown_time;
+
 	/* Search state */
 	char query[PROFILE_SELECTOR_MAX_QUERY];
 	size_t query_len;
@@ -51,6 +54,7 @@ struct cg_profile_selector *profile_selector_create(struct cg_server *server);
 void profile_selector_destroy(struct cg_profile_selector *selector);
 void profile_selector_show(struct cg_profile_selector *selector);
 void profile_selector_hide(struct cg_profile_selector *selector);
+void profile_selector_reposition(struct cg_profile_selector *selector);
 
 /* Keyboard input handling */
 /* Returns true if key was handled, false otherwise */

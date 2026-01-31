@@ -905,8 +905,8 @@ main(int argc, char *argv[])
 
 	/* Show profile selector if -P flag was used */
 	if (server.profile_selector_mode) {
-		wlr_log(WLR_INFO, "Profile selector mode enabled, showing selector");
-		profile_selector_show(server.profile_selector);
+		wlr_log(WLR_INFO, "Profile selector mode enabled, will show on first frame");
+		server.profile_selector_pending_show = true;
 	}
 
 	/* Check if there's a primary client to spawn (after profile and/or --) */
