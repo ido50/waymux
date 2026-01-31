@@ -122,6 +122,7 @@ waymux = [
   'control.c',
   'desktop_entry.c',
   'idle_inhibit_v1.c',
+  'keybinding.c',
   'launcher.c',
   'output.c',
   'pixel_buffer.c',
@@ -142,6 +143,7 @@ waymux_headers = [
   'control.h',
   'desktop_entry.h',
   'idle_inhibit_v1.h',
+  'keybinding.h',
   'launcher.h',
   'output.h',
   'pixel_buffer.h',
@@ -250,10 +252,20 @@ if check.found()
     include_directories: include_directories('.'),
   )
 
+  # Keybinding tests
+  test_keybinding = executable(
+    'keybinding_test',
+    'test/keybinding_test.c',
+    'keybinding.c',
+    dependencies: test_deps,
+    include_directories: include_directories('.'),
+  )
+
   # Run tests
   test('desktop_entry', test_desktop_entry)
   test('tab', test_tab)
   test('control', test_control)
   test('waymuxctl', test_waymuxctl)
   test('profile', test_profile)
+  test('keybinding', test_keybinding)
 endif
