@@ -39,6 +39,12 @@ See *waymux-profile*(5) for details on the profile file format.
 
 # OPTIONS
 
+*-c* <path>
+	Load configuration from the specified file instead of the default
+	location. If not specified, WayMux searches for a config file in
+	*$XDG_CONFIG_HOME/waymux/config.toml* or *~/.config/waymux/config.toml*.
+	See *waymux-config*(5) for details on the configuration file format.
+
 *-d*
 	Don't draw client side decorations when possible.
 
@@ -47,12 +53,6 @@ See *waymux-profile*(5) for details on the profile file format.
 
 *-h*
 	Show the help message.
-
-*-c* <path>
-	Load configuration from the specified file instead of the default
-	location. If not specified, WayMux searches for a config file in
-	*$XDG_CONFIG_HOME/waymux/config.toml* or *~/.config/waymux/config.toml*.
-	See *waymux-config*(5) for details on the configuration file format.
 
 *-i* <name>
 	Set the instance name. Multiple WayMux instances can run simultaneously,
@@ -63,6 +63,11 @@ See *waymux-profile*(5) for details on the profile file format.
 	Set the multi-monitor behavior. Supported modes are:
 	*last* WayMux uses only the last connected monitor.
 	*extend* WayMux extends the display across all connected monitors.
+
+*-P*
+	Show the profile selector dialog. This displays an interactive list of
+	available profiles from *~/.config/waymux/profiles.d/*, allowing you to
+	choose which profile to launch.
 
 *-s*
 	Allow VT switching
@@ -171,6 +176,12 @@ $ waymux -i work dev
 ```
 $ waymux -i work dev &
 $ waymux -i personal foot &
+```
+
+*Show the profile selector dialog*
+
+```
+$ waymux -P
 ```
 
 For controlling WayMux from other terminals or scripts, see *waymuxctl*(1).
