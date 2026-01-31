@@ -204,17 +204,6 @@ summary = [
 ]
 message('\n'.join(summary))
 
-custom_target(
-    'pacman-package',
-    output: meson.project_name() + '-' + meson.project_version() + '-1-x86_64.pkg.tar.zst',
-    command: [
-        'sh', '-c',
-	'cd ' + meson.project_source_root() + ' && PKGDEST=' + meson.project_build_root() + ' makepkg -ef && makepkg --printsrcinfo > .SRCINFO',
-    ],
-    build_by_default: false,
-    console: true,
-)
-
 # Tests
 if check.found()
   test_deps = [
