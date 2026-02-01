@@ -195,6 +195,12 @@ waymuxctl = executable(
   install: true,
 )
 
+# Install desktop file
+install_data(
+  'waymux.desktop',
+  install_dir: join_paths(get_option('datadir'), 'applications'),
+)
+
 summary = [
   '',
   'WayMux @0@'.format(version),

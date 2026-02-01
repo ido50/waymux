@@ -1,54 +1,108 @@
-name: Release
+name: Build and Release
 
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag/version to build (e.g., v1.0.0 or 1.0.0)'
+        required: false
+        type: string
 
 permissions:
   contents: write
 
 jobs:
-  build-aur-package:
+  build-and-release:
     runs-on: ubuntu-latest
+    container: archlinux:base-devel
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wayland protocols wayland-protocols-dev \
-            libxkbcommon-dev libcairo2-dev libcheck-dev meson scdoc
+          pacman-key --init
+          pacman -Syu --noconfirm \
+            xcb-util-wm seatd git meson libinput libdrm mesa \
+            libxkbcommon wayland wayland-protocols xorg-server-xwayland \
+            scdoc libdisplay-info check tar wlroots0.19 sudo
 
-      - name: Build AUR package
+      - name: Build and install tomlc17-git from AUR
         run: |
-          meson setup build -Duse_git_version=false
-          meson compile -C build pacman-package
+          useradd -m builder
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+          cd /home/builder
+          sudo -u builder git clone https://aur.archlinux.org/tomlc17-git.git
+          cd tomlc17-git
+          sudo -u builder makepkg -si --noconfirm
 
-      - name: Get version from tag
+      - name: Build WayMux
+        run: |
+          meson setup build --buildtype=release --prefix=/usr
+          meson compile -C build
+
+      - name: Run tests
+        run: |
+          mkdir -p /tmp/runtime-dir
+          export XDG_RUNTIME_DIR=/tmp/runtime-dir
+          meson test -C build
+
+      - name: Install to staging directory
+        run: |
+          DESTDIR="${PWD}/staging" meson install -C build
+
+      - name: Get version
         id: get_version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          if [[ -n "${{ inputs.tag }}" ]]; then
+            # Manual input provided
+            VERSION="${{ inputs.tag }}"
+            VERSION="${VERSION#v}"  # Remove 'v' prefix if present
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            # Tag push
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            # Fallback to commit SHA
+            echo "version=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create tarball
+        run: |
+          cd staging
+          tar -czf ../waymux-${{ steps.get_version.outputs.version }}-x86_64.tar.gz usr/
+          cd ..
+          sha256sum waymux-${{ steps.get_version.outputs.version }}-x86_64.tar.gz > waymux-${{ steps.get_version.outputs.version }}-x86_64.tar.gz.sha256
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: waymux-bin-*.pkg.tar.zst*
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: |
+            waymux-${{ steps.get_version.outputs.version }}-x86_64.tar.gz
+            waymux-${{ steps.get_version.outputs.version }}-x86_64.tar.gz.sha256
           generate_release_notes: true
           body: |
             ## Installation
 
-            ### Arch Linux (AUR)
-
-            Download the package below and install with:
+            Download the tarball below and extract:
 
             ```bash
-            pacman -U waymux-bin-*.pkg.tar.zst
+            tar -xzf waymux-${{ steps.get_version.outputs.version }}-x86_64.tar.gz
+            sudo cp -r usr/* /usr/
             ```
 
-            Or build from the AUR (when available):
+            ### Verify checksum
+
             ```bash
-            paru -S waymux-bin
-            # or
-            yay -S waymux-bin
+            sha256sum -c waymux-${{ steps.get_version.outputs.version }}-x86_64.tar.gz.sha256
             ```
+
+            ### Build from source
+
+            See the [README](https://github.com/${{ github.repository }}) for build instructions.
