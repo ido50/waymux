@@ -6,15 +6,15 @@
  * See the LICENSE file accompanying this file.
  */
 
+#include "profile.h"
 #include <check.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <string.h>
 #include <errno.h>
 #include <limits.h>
-#include "profile.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 static char *test_profile_name = NULL;
 static char *test_profile_path = NULL;
@@ -119,7 +119,9 @@ teardown(void)
 	}
 	/* Restore original working directory */
 	if (saved_cwd) {
-		(void)chdir(saved_cwd);
+		if (chdir(saved_cwd) != 0) {
+			perror("chdir in teardown");
+		}
 		free(saved_cwd);
 		saved_cwd = NULL;
 	}
