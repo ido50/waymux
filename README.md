@@ -52,11 +52,12 @@ of this window is the host compositor (Hyprland in this case).
 
 ### Arch Linux (AUR)
 
-WayMux is available as `waymux-bin` in the AUR:
+WayMux is available as `waymux` (source build) and `waymux-bin` (binary download)
+in the AUR:
 
 ```bash
+paru -S waymux
 paru -S waymux-bin
-# or
 yay -S waymux-bin
 ```
 
